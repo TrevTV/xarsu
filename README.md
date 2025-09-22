@@ -1,0 +1,4 @@
+## Licensing
+- [MelonLoader](https://github.com/LavaGang/MelonLoader) is licensed under the Apache-2.0 License. See [LICENSE](https://github.com/LavaGang/MelonLoader/blob/master/LICENSE.md) for the full license.
+- [NativeAOT-AndroidHelloJniLib](https://github.com/josephmoresena/NativeAOT-AndroidHelloJniLib) is licensed under the MIT License. See [LICENSE](https://github.com/josephmoresena/NativeAOT-AndroidHelloJniLib/blob/main/LICENSE) for the full license.
+- [JNISharp](https://github.com/WarrenUlrich/JNISharp) is licensed under the MIT License. See [LICENSE](https://github.com/WarrenUlrich/JNISharp/blob/master/LICENSE) for the full license.

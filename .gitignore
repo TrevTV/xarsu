@@ -399,3 +399,7 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# Generated Compilation Scripts
+android_clang.cmd
+android_llvm-objcopy.cmd

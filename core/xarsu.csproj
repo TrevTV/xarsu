@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PublishAot>true</PublishAot>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefineConstants>ANDROID</DefineConstants>
+  </PropertyGroup>
+
+  <Import Condition="'$(RuntimeIdentifier.StartsWith(`linux-bionic-`))' == 'true'" Project="BionicNativeAot.targets" />
+  <Target Condition="'$(RuntimeIdentifier.StartsWith(`linux-bionic-`))' == 'true'" Name="RenameBinary" AfterTargets="Publish">
+    <Move SourceFiles="$(PublishDir)/$(TargetName).so" DestinationFiles="$(PublishDir)/libmain.so" />
+  </Target>
+
+</Project>

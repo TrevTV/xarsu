@@ -14,4 +14,12 @@
     <Move SourceFiles="$(PublishDir)/$(TargetName).so" DestinationFiles="$(PublishDir)/libmain.so" />
   </Target>
 
+  <PropertyGroup Condition="'$(RuntimeIdentifier.StartsWith(`linux-`))' == 'true'">
+    <LinkStandardCPlusPlusLibrary>true</LinkStandardCPlusPlusLibrary>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <NativeLibrary Include="Deps/$(RuntimeIdentifier)/$(LibPrefix)dobby$(LibExt)" />
+  </ItemGroup>
+
 </Project>

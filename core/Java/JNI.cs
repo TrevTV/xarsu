@@ -898,6 +898,16 @@ public unsafe static partial class JNI
         }
     }
 
+    public static JObjectArray<T> NewObjectArray<T>(int length, JClass elementClass) where T : JObject, new()
+    {
+        unsafe
+        {
+            IntPtr res = Env->Functions->NewObjectArray(Env, length, elementClass.Handle, IntPtr.Zero);
+            using JObject local = new() { Handle = res, ReferenceType = JNI.ReferenceType.Local };
+            return NewGlobalRef<JObjectArray<T>>(local);
+        }
+    }
+
     public static JArray<T> NewArray<T>(int length)
     {
         unsafe
@@ -927,15 +937,15 @@ public unsafe static partial class JNI
             }
             else if (t == typeof(long))
             {
-                res = Env->Functions->NewBooleanArray(Env, length);
+                res = Env->Functions->NewLongArray(Env, length);
             }
             else if (t == typeof(float))
             {
-                res = Env->Functions->NewBooleanArray(Env, length);
+                res = Env->Functions->NewFloatArray(Env, length);
             }
             else if (t == typeof(double))
             {
-                res = Env->Functions->NewBooleanArray(Env, length);
+                res = Env->Functions->NewDoubleArray(Env, length);
             }
             else
             {

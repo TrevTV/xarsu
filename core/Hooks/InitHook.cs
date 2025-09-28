@@ -40,6 +40,8 @@ internal static class InitHook
         IntPtr domain = _il2cppInitHook!.Trampoline!.Invoke(domain_name);
         _il2cppInitHook.Unhook();
 
+        Core.NotifyIl2CppReady();
+
         return domain;
     }
 }

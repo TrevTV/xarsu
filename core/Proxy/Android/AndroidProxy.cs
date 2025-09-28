@@ -41,7 +41,7 @@ internal static class AndroidProxy
     private static unsafe byte Load(void* env, void* jobject, void* str)
     {
         LoadUnity();
-        AndroidBootstrap.Init();
+        AndroidBootstrap.TryInitCore();
         return 1;
     }
 

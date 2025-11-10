@@ -7,6 +7,7 @@ namespace xarsu.Proxy.Android;
 internal partial class AndroidBootstrap : IProxyBootstrap
 {
     public string? PackageName { get; private set; }
+    public string Il2CppAssemblyName { get; } = "libil2cpp.so";
     public int ApiLevel { get; private set; } = 0;
 
     public string? DataDirectory { get; }

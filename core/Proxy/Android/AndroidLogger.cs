@@ -30,6 +30,11 @@ internal partial class AndroidLogger : IProxyLogger
         LogInternal(message?.ToString() ?? "", LogPriority.ERROR);
     }
 
+    public void LogVerbose(object message)
+    {
+        LogInternal(message?.ToString() ?? "", LogPriority.VERBOSE);
+    }
+
     private enum LogPriority
     {
         UNKNOWN = 0,

@@ -11,13 +11,14 @@ internal static class InitHook
 
     public static void DoHook()
     {
-        if (!NativeLibrary.TryLoad("libil2cpp.so", out var libIl2Cpp))
+        string libraryPath = Core.Bootstrap!.Il2CppAssemblyName;
+        if (!NativeLibrary.TryLoad(libraryPath, out var il2cpp))
         {
-            Core.ProxyLogger?.LogError("Failed to load libil2cpp.so");
+            Core.ProxyLogger?.LogError($"Failed to load {libraryPath}");
             return;
         }
 
-        if (!NativeLibrary.TryGetExport(libIl2Cpp, "il2cpp_init", out var il2cppInitPtr))
+        if (!NativeLibrary.TryGetExport(il2cpp, "il2cpp_init", out var il2cppInitPtr))
         {
             Core.ProxyLogger?.LogError("Failed to find il2cpp_init export");
             return;

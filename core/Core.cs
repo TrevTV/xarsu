@@ -1,5 +1,4 @@
-﻿using System.Runtime.InteropServices;
-using xarsu.Hooks;
+﻿using xarsu.Hooks;
 using xarsu.Proxy;
 
 namespace xarsu;

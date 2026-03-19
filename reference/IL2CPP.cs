@@ -251,6 +251,8 @@ public static unsafe partial class IL2CPP
 
     public static uint il2cpp_field_get_offset(IntPtr field) => _exports.il2cpp_field_get_offset(field);
 
+    public static IntPtr il2cpp_field_get_type(IntPtr field) => _exports.il2cpp_field_get_type(field);
+
     public static void il2cpp_field_get_value(IntPtr obj, IntPtr field, void* value) => _exports.il2cpp_field_get_value(obj, field, value);
 
     public static bool il2cpp_field_has_attribute(IntPtr field, IntPtr attr_class) => _exports.il2cpp_field_has_attribute(field, attr_class);
@@ -442,6 +444,7 @@ public static unsafe partial class IL2CPP
             il2cpp_unhandled_exception = NativeLibraryUtil.LoadFunction<il2cpp_unhandled_exception_delegate>(handle, "il2cpp_unhandled_exception");
             il2cpp_field_get_name = NativeLibraryUtil.LoadFunction<il2cpp_field_get_name_delegate>(handle, "il2cpp_field_get_name");
             il2cpp_field_get_offset = NativeLibraryUtil.LoadFunction<il2cpp_field_get_offset_delegate>(handle, "il2cpp_field_get_offset");
+            il2cpp_field_get_type = NativeLibraryUtil.LoadFunction<il2cpp_field_get_type_delegate>(handle, "il2cpp_field_get_type");
             il2cpp_field_get_value = NativeLibraryUtil.LoadFunction<il2cpp_field_get_value_delegate>(handle, "il2cpp_field_get_value");
             il2cpp_field_has_attribute = NativeLibraryUtil.LoadFunction<il2cpp_field_has_attribute_delegate>(handle, "il2cpp_field_has_attribute");
             il2cpp_field_static_get_value = NativeLibraryUtil.LoadFunction<il2cpp_field_static_get_value_delegate>(handle, "il2cpp_field_static_get_value");
@@ -672,6 +675,9 @@ public static unsafe partial class IL2CPP
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
         public delegate uint il2cpp_field_get_offset_delegate(IntPtr field);
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+        public delegate IntPtr il2cpp_field_get_type_delegate(IntPtr field);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
         public delegate void il2cpp_field_get_value_delegate(IntPtr obj, IntPtr field, void* value);
@@ -946,6 +952,7 @@ public static unsafe partial class IL2CPP
         public il2cpp_unhandled_exception_delegate il2cpp_unhandled_exception { get; }
         public il2cpp_field_get_name_delegate il2cpp_field_get_name { get; }
         public il2cpp_field_get_offset_delegate il2cpp_field_get_offset { get; }
+        public il2cpp_field_get_type_delegate il2cpp_field_get_type { get; }
         public il2cpp_field_get_value_delegate il2cpp_field_get_value { get; }
         public il2cpp_field_has_attribute_delegate il2cpp_field_has_attribute { get; }
         public il2cpp_field_static_get_value_delegate il2cpp_field_static_get_value { get; }

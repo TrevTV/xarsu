@@ -4,5 +4,4 @@
   </Folder>
   <Project Path="core/xarsu.csproj" />
   <Project Path="reference/xarsu.Reference.csproj" Id="8ac4c4c8-7ef9-452f-ad84-5ee8a837807d" />
-  <Project Path="xarsu.Generator/xarsu.Generator.csproj" Id="a742e7dd-0f48-4245-924f-a2d151bed3ad" />
 </Solution>

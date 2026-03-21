@@ -65,11 +65,12 @@ internal partial class AndroidBootstrap : IProxyBootstrap
         }
 
         // now check APK-embedded libraries
+        // TODO: use a toml/json to specify which libraries to load instead of just loading all of them, this is pretty hacky and will probably cause issues
         string[] embeddedLibraries = Directory.GetFiles(_nativeLibraryDir!, "*.so");
         foreach (string libraryPath in embeddedLibraries)
         {
             string fileName = Path.GetFileNameWithoutExtension(libraryPath);
-            if (fileName is "libil2cpp" or "libunity" or "libmain" or "libc++_shared") // skip the obvious ones
+            if (fileName is "libil2cpp" or "libunity" or "libmain" or "libc++_shared" or "libdobby") // skip the obvious ones
                 continue;
 
             Library? library = HandleLibraryLoad(libraryPath);

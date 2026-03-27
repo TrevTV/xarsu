@@ -267,7 +267,7 @@ internal static class ApplicationAnalysisContextExtensions
                 var declarationContext = new ContextResolver(methodContext.DeclaringType!).Resolve(declaration);
                 if (declarationContext is not null)
                 {
-                    methodContext.OverridesList.Add((MethodAnalysisContext)declarationContext);
+                    methodContext.Overrides.Add((MethodAnalysisContext)declarationContext);
                 }
             }
         }

@@ -1,4 +1,5 @@
-﻿using Il2CppInterop.Generator;
+﻿using Cpp2IL.Core.ProcessingLayers;
+using Il2CppInterop.Generator;
 using System.CommandLine;
 using xarsu.Generator;
 using xarsu.Generator.ProcessingLayers;
@@ -28,7 +29,7 @@ rootCommand.SetAction(res =>
         dataPath.FullName,
         outputPath.FullName,
         new XarsuReferenceOutputFormat(), [
-            //new AttributeAnalysisProcessingLayer(),
+            new AttributeAnalysisProcessingLayer(),
             new Il2CppRenamingProcessingLayer(),
             new CleanRenamingProcessingLayer(),
             new ConflictRenamingProcessingLayer(),
@@ -36,6 +37,10 @@ rootCommand.SetAction(res =>
             new ReferenceAssemblyInjectionProcessingLayer(),
             new KnownTypeAssignmentProcessingLayer(),
             new ReferenceReplacementProcessingLayer(),
+            new AttributeRemovalProcessingLayer(),
+            new AttributesOverrideProcessingLayer(),
+            new PublicizerProcessingLayer(),
+            new PointerCtorInjectionProcessingLayer(),
             new PrimitiveImplicitConversionProcessingLayer(),
         ],
         [new("corlib", corlibPath.FullName)]);

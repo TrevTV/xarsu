@@ -1,8 +1,10 @@
+using System.Runtime.CompilerServices;
+
 namespace xarsu.Reference;
 
 public class Il2CppObject
 {
-    public ObjectPointer Pointer { get; }
+    public ObjectPointer Pointer { get; private set; }
 
     public Il2CppObject(ObjectPointer ptr)
     {
@@ -10,6 +12,8 @@ public class Il2CppObject
             throw new ArgumentNullException(nameof(ptr), "Il2CppObject pointer must not be null.");
         Pointer = ptr;
     }
+
+    public void Initialize(IntPtr ptr) => Pointer = new(ptr);
 
     protected static IntPtr AllocObject(string assemblyName, string namespaceName, string className)
     {
@@ -21,15 +25,28 @@ public class Il2CppObject
         return ptr;
     }
 
+    public IntPtr Box()
+    {
+        var klass = IL2CPP.il2cpp_object_get_class(Pointer.Value);
+        return IL2CPP.il2cpp_value_box(klass, Pointer.Value);
+    }
+
     public static IntPtr Box<T>(string assemblyName, string namespaceName, string className, T value)
         where T : unmanaged
     {
         var klass = IL2CPP.GetIl2CppClass(assemblyName, namespaceName, className);
         unsafe
         {
-            fixed (void* p = &System.Runtime.CompilerServices.Unsafe.As<T, byte>(ref value))
+            fixed (void* p = &Unsafe.As<T, byte>(ref value))
                 return IL2CPP.il2cpp_value_box(klass, (IntPtr)p);
         }
+    }
+
+    public static T Wrap<T>(IntPtr ptr) where T : Il2CppObject
+    {
+        var obj = (T)RuntimeHelpers.GetUninitializedObject(typeof(T));
+        obj.Initialize(ptr);
+        return obj;
     }
 
     public override string ToString()

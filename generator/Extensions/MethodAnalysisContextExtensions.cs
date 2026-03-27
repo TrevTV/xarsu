@@ -1,5 +1,7 @@
-﻿using Cpp2IL.Core.Model.Contexts;
+﻿using AsmResolver.DotNet;
+using Cpp2IL.Core.Model.Contexts;
 using System.Reflection;
+using Cpp2IL.Core.Utils.AsmResolver;
 
 namespace xarsu.Generator.Extensions;
 
@@ -17,6 +19,23 @@ internal static class MethodAnalysisContextExtensions
         {
             get => method.GetExtraData<object>("Unstripped") is true;
             set => method.PutExtraData<object>("Unstripped", value);
+        }
+
+        public bool ImplementsAnInterfaceMethod
+        {
+            get
+            {
+                var count = 0;
+                foreach (var x in method.Overrides)
+                {
+                    count++;
+                    if (count > 1)
+                    {
+                        return true;
+                    }
+                }
+                return count == 1 && method.BaseMethod is null;
+            }
         }
     }
 }

@@ -37,6 +37,30 @@ internal static class TypeAnalysisContextExtensions
             set => type.PutExtraStruct("KnownType", value);
         }
 
+        public MethodAnalysisContext? FindPtrCtor()
+        {
+            var ctor = type.Methods.FirstOrDefault(m => m.IsConstructor && !m.IsStatic
+                    && m.Parameters.Count == 1
+                    && m.Parameters[0].ParameterType.FullName == "xarsu.Reference.ObjectPointer");
+
+            return ctor;
+        }
+
+        public MethodAnalysisContext? FindBasePtrCtor()
+        {
+            var current = type.BaseType;
+            while (current != null)
+            {
+                var ctor = current.Methods.FirstOrDefault(m => m.IsConstructor && !m.IsStatic
+                    && m.Parameters.Count == 1
+                    && m.Parameters[0].ParameterType.FullName == "xarsu.Reference.ObjectPointer");
+                if (ctor != null)
+                    return ctor;
+                current = current.BaseType;
+            }
+            return null;
+        }
+
         public FieldAnalysisContext GetFieldByName(string? name)
         {
             return type.TryGetFieldByName(name) ?? throw new Exception($"Field {name} not found in type {type.Name}");
@@ -59,6 +83,43 @@ internal static class TypeAnalysisContextExtensions
         {
             field = type.TryGetFieldByName(name);
             return field is not null;
+        }
+
+        public MethodAnalysisContext GetMethodByName(string name)
+        {
+            for (var i = type.Methods.Count - 1; i >= 0; i--)
+            {
+                var method = type.Methods[i];
+                if (method.Name == name)
+                {
+                    return method;
+                }
+            }
+            throw new Exception($"Method {name} not found in type {type.Name}");
+        }
+
+        public PropertyAnalysisContext GetPropertyByName(string? name)
+        {
+            return type.TryGetPropertyByName(name) ?? throw new Exception($"Property {name} not found in type {type.Name}");
+        }
+
+        public PropertyAnalysisContext? TryGetPropertyByName(string? name)
+        {
+            for (var i = type.Properties.Count - 1; i >= 0; i--)
+            {
+                var property = type.Properties[i];
+                if (property.Name == name)
+                {
+                    return property;
+                }
+            }
+            return null;
+        }
+
+        public bool TryGetPropertyByName(string? name, [NotNullWhen(true)] out PropertyAnalysisContext? property)
+        {
+            property = type.TryGetPropertyByName(name);
+            return property is not null;
         }
 
         public MethodAnalysisContext GetImplicitConversionFrom(TypeAnalysisContext sourceType)

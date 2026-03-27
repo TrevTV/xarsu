@@ -94,23 +94,22 @@ public class PrimitiveImplicitConversionProcessingLayer : Cpp2IlProcessingLayer
             }
         }*/
 
-        ReadOnlySpan<(string, string)> numericPairs =
-        [
-            ("Il2CppSystem.SByte", "System.SByte"),
-            ("Il2CppSystem.Byte", "System.Byte"),
-            ("Il2CppSystem.Int16", "System.Int16"),
-            ("Il2CppSystem.UInt16", "System.UInt16"),
-            ("Il2CppSystem.Int32", "System.Int32"),
-            ("Il2CppSystem.UInt32", "System.UInt32"),
-            ("Il2CppSystem.Int64", "System.Int64"),
-            ("Il2CppSystem.UInt64", "System.UInt64"),
-            ("Il2CppSystem.Single", "System.Single"),
-            ("Il2CppSystem.Double", "System.Double"),
-            ("Il2CppSystem.Char", "System.Char"),
-            ("Il2CppSystem.Boolean", "System.Boolean"),
-            ("Il2CppSystem.IntPtr", "System.IntPtr"),
-            ("Il2CppSystem.UIntPtr", "System.UIntPtr"),
-        ];
+        Dictionary<string, string> numericPairs = new() {
+            { "Il2CppSystem.SByte", "System.SByte"},
+            { "Il2CppSystem.Byte", "System.Byte"},
+            { "Il2CppSystem.Int16", "System.Int16"},
+            { "Il2CppSystem.UInt16", "System.UInt16"},
+            { "Il2CppSystem.Int32", "System.Int32"},
+            { "Il2CppSystem.UInt32", "System.UInt32"},
+            { "Il2CppSystem.Int64", "System.Int64"},
+            { "Il2CppSystem.UInt64", "System.UInt64"},
+            { "Il2CppSystem.Single", "System.Single"},
+            { "Il2CppSystem.Double", "System.Double"},
+            { "Il2CppSystem.Char", "System.Char"},
+            { "Il2CppSystem.Boolean", "System.Boolean"},
+            { "Il2CppSystem.IntPtr", "System.IntPtr"},
+            { "Il2CppSystem.UIntPtr", "System.UIntPtr"},
+        };
 
         foreach (var (il2CppTypeName, monoTypeName) in numericPairs)
         {
@@ -171,6 +170,62 @@ public class PrimitiveImplicitConversionProcessingLayer : Cpp2IlProcessingLayer
                     ]
                 });
                 il2CppType.Methods.Add(implicitConversion);
+            }
+        }
+
+        // add String for bulk replacements
+        // TODO: should be moved to a remapping layer, but this is easier for now
+        numericPairs.Add("Il2CppSystem.String", "System.String");
+
+        // we made implicits, but lets redirect the type usages to the mono versions to make things even easier
+        foreach (var assembly in appContext.Assemblies)
+        {
+            foreach (var type in assembly.Types)
+            {
+                foreach (var field in type.Fields)
+                {
+                    if (numericPairs.TryGetValue(field.FieldType.FullName, out string? monoTypeName) && monoTypeName != null)
+                    {
+                        var monoType = mscorlib.GetTypeByFullNameOrThrow(monoTypeName);
+                        field.FieldType = monoType;
+                    }
+                }
+
+                foreach (var property in type.Properties)
+                {
+                    if (numericPairs.TryGetValue(property.PropertyType.FullName, out string? monoTypeName) && monoTypeName != null)
+                    {
+                        var monoType = mscorlib.GetTypeByFullNameOrThrow(monoTypeName);
+                        property.PropertyType = monoType;
+                    }
+                }
+
+                foreach (var evnt in type.Events)
+                {
+                    if (numericPairs.TryGetValue(evnt.EventType.FullName, out string? monoTypeName) && monoTypeName != null)
+                    {
+                        var monoType = mscorlib.GetTypeByFullNameOrThrow(monoTypeName);
+                        evnt.EventType = monoType;
+                    }
+                }
+
+                foreach (var method in type.Methods)
+                {
+                    if (numericPairs.TryGetValue(method.ReturnType.FullName, out string? monoTypeName) && monoTypeName != null)
+                    {
+                        var monoType = mscorlib.GetTypeByFullNameOrThrow(monoTypeName);
+                        method.ReturnType = monoType;
+                    }
+
+                    foreach (var param in method.Parameters)
+                    {
+                        if (numericPairs.TryGetValue(param.ParameterType.FullName, out monoTypeName) && monoTypeName != null)
+                        {
+                            var monoType = mscorlib.GetTypeByFullNameOrThrow(monoTypeName);
+                            param.ParameterType = monoType;
+                        }
+                    }
+                }
             }
         }
     }

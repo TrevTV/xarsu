@@ -1,5 +1,4 @@
 ﻿using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
 
 namespace xarsu.Reference;
 
@@ -9,9 +8,6 @@ public static unsafe partial class IL2CPP
     private static readonly Dictionary<string, IntPtr> _imageMap = [];
     private static readonly IntPtr _handle;
     private static readonly Delegates _exports;
-
-    [GeneratedRegex("\\`\\d+")]
-    private static partial Regex GenericMatch();
 
     static IL2CPP()
     {
@@ -35,123 +31,6 @@ public static unsafe partial class IL2CPP
                 continue;
             _imageMap[name] = image;
         }
-    }
-
-    public static IntPtr GetIl2CppClass(string assemblyName, string namespaze, string className)
-    {
-        if (!_imageMap.TryGetValue(assemblyName, out var image))
-            throw new KeyNotFoundException($"Assembly '{assemblyName}' not found");
-        var klass = il2cpp_class_from_name(image, namespaze, className);
-        if (klass == IntPtr.Zero)
-            throw new KeyNotFoundException($"Class '{namespaze}.{className}' not found in assembly '{assemblyName}'");
-        return klass;
-    }
-
-    public static IntPtr GetIl2CppMethod(IntPtr clazz, bool isGeneric, string methodName, string returnTypeName, params string[] argTypes)
-    {
-        if (clazz == IntPtr.Zero)
-            throw new ArgumentNullException(nameof(clazz));
-
-        // TODO: cache methods
-
-        returnTypeName = GenericMatch().Replace(returnTypeName, "").Replace('/', '.').Replace('+', '.');
-        for (var index = 0; index < argTypes.Length; index++)
-        {
-            var argType = argTypes[index];
-            argTypes[index] = GenericMatch().Replace(argType, "").Replace('/', '.').Replace('+', '.');
-        }
-
-        var methodsSeen = 0;
-        var lastMethod = IntPtr.Zero;
-        var iter = IntPtr.Zero;
-        IntPtr method;
-        while ((method = il2cpp_class_get_methods(clazz, ref iter)) != IntPtr.Zero)
-        {
-            if (il2cpp_method_get_name(method) != methodName)
-                continue;
-
-            if (il2cpp_method_get_param_count(method) != argTypes.Length)
-                continue;
-
-            if (il2cpp_method_is_generic(method) != isGeneric)
-                continue;
-
-            var returnType = il2cpp_method_get_return_type(method);
-            var returnTypeNameActual = il2cpp_type_get_name(returnType);
-            if (returnTypeNameActual != returnTypeName)
-                continue;
-
-            methodsSeen++;
-            lastMethod = method;
-
-            var badType = false;
-            for (var i = 0; i < argTypes.Length; i++)
-            {
-                var paramType = il2cpp_method_get_param(method, (uint)i);
-                var typeName = il2cpp_type_get_name(paramType);
-                if (typeName != argTypes[i])
-                {
-                    badType = true;
-                    break;
-                }
-            }
-
-            if (badType) continue;
-
-            return method;
-        }
-
-        var className = il2cpp_class_get_name(clazz);
-
-        if (methodsSeen == 1)
-        {
-            TraceLog(
-                "Method {ClassName}::{MethodName} was stubbed with a random matching method of the same name", className, methodName);
-            TraceLog(
-                "Stubby return type/target: {LastMethod} / {ReturnTypeName}", il2cpp_type_get_name(il2cpp_method_get_return_type(lastMethod)), returnTypeName);
-            TraceLog("Stubby parameter types/targets follow:");
-            for (var i = 0; i < argTypes.Length; i++)
-            {
-                var paramType = il2cpp_method_get_param(lastMethod, (uint)i);
-                var typeName = il2cpp_type_get_name(paramType);
-                TraceLog("    {TypeName} / {ArgType}", typeName, argTypes[i]);
-            }
-
-            return lastMethod;
-        }
-
-        TraceLog("Unable to find method {ClassName}::{MethodName}; signature follows", className, methodName);
-        TraceLog("    return {ReturnTypeName}", returnTypeName);
-        foreach (var argType in argTypes)
-            TraceLog("    {ArgType}", argType);
-        TraceLog("Available methods of this name follow:");
-        iter = IntPtr.Zero;
-        while ((method = il2cpp_class_get_methods(clazz, ref iter)) != IntPtr.Zero)
-        {
-            if (il2cpp_method_get_name(method) != methodName)
-                continue;
-
-            var nParams = il2cpp_method_get_param_count(method);
-            TraceLog("Method starts");
-            TraceLog(
-                "     return {MethodTypeName}", il2cpp_type_get_name(il2cpp_method_get_return_type(method)));
-            for (var i = 0; i < nParams; i++)
-            {
-                var paramType = il2cpp_method_get_param(method, (uint)i);
-                var typeName = il2cpp_type_get_name(paramType);
-                TraceLog("    {TypeName}", typeName);
-            }
-
-            return method;
-        }
-
-        return IntPtr.Zero;
-    }
-
-    private static void TraceLog(string message, params object?[] args)
-    {
-        string formatted = string.Format(message, args);
-        XarsuExports.LogVerbose("[IL2CPP] " + formatted);
     }
 
     public static void il2cpp_init(nint domain_name) => _exports.il2cpp_init(domain_name);

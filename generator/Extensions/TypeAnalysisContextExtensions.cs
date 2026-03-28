@@ -18,13 +18,6 @@ internal static class TypeAnalysisContextExtensions
             set => type.PutExtraData("SourceType", value);
         }
 
-        [MaybeNull]
-        public MethodAnalysisContext PointerConstructor
-        {
-            get => type.GetExtraData<MethodAnalysisContext>("PointerConstructor");
-            set => type.PutExtraData("PointerConstructor", value);
-        }
-
         public bool IsUnstripped
         {
             get => type.GetExtraData<object>("Unstripped") is true;

@@ -95,12 +95,10 @@ internal class XarsuReferenceOutputFormat : AsmResolverDllOutputFormatThrowNull
         il.Add(new CilInstruction(CilOpCodes.Call, il2cppGetIl2CppClass.ToMethodDescriptor(module)));
         // class is now found on the stack
 
-        CilLocalVariable ctorLocalObj = null!;
-
         if (isCtor)
         {
             // setup a local variable for our object
-            ctorLocalObj = new CilLocalVariable(module.CorLibTypeFactory.IntPtr);
+            CilLocalVariable ctorLocalObj = new(module.CorLibTypeFactory.IntPtr);
             methodDef.CilMethodBody.LocalVariables.Add(ctorLocalObj);
 
             // call il2cpp_object_new to create the object, store in localObj

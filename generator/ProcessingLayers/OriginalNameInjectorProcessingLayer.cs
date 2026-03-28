@@ -22,27 +22,41 @@ public sealed class OriginalNameInjectorProcessingLayer : Cpp2IlProcessingLayer
 
         foreach (var assembly in appContext.Assemblies)
         {
+            if (assembly.IsInjected)
+                continue;
+
             foreach (var type in assembly.Types)
             {
+                if (type.IsInjected)
+                    continue;
+
                 AddAttribute(type, typeNameAttributeCtor, type.DeclaringAssembly!.DefaultName, type.DefaultNamespace, type.DefaultName);
 
                 foreach (var field in type.Fields)
                 {
+                    if (field.IsInjected)
+                        continue;
                     AddAttribute(field, nameAttributeCtor, field.DefaultName);
                 }
 
                 foreach (var property in type.Properties)
                 {
+                    if (property.IsInjected)
+                        continue;
                     AddAttribute(property, nameAttributeCtor, property.DefaultName);
                 }
 
                 foreach (var evnt in type.Events)
                 {
+                    if (evnt.IsInjected)
+                        continue;
                     AddAttribute(evnt, nameAttributeCtor, evnt.DefaultName);
                 }
 
                 foreach (var method in type.Methods)
                 {
+                    if (method.IsInjected)
+                        continue;
                     AddAttribute(method, nameAttributeCtor, method.DefaultName);
                 }
             }

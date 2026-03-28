@@ -48,7 +48,7 @@ public static unsafe partial class IL2CPP
     public static IntPtr il2cpp_array_class_get(IntPtr element_class, uint rank) => _exports.il2cpp_array_class_get(element_class, rank);
     public static uint il2cpp_array_length(IntPtr array) => _exports.il2cpp_array_length(array);
     public static uint il2cpp_array_get_byte_length(IntPtr array) => _exports.il2cpp_array_get_byte_length(array);
-    public static IntPtr il2cpp_array_new(IntPtr elementIl2CppClass, ulong length) => _exports.il2cpp_array_new(elementIl2CppClass, length);
+    public static IntPtr il2cpp_array_new(IntPtr elementIl2CppClass, uint length) => _exports.il2cpp_array_new(elementIl2CppClass, length);
     public static IntPtr il2cpp_array_new_specific(IntPtr arrayIl2CppClass, ulong length) => _exports.il2cpp_array_new_specific(arrayIl2CppClass, length);
     public static IntPtr il2cpp_array_new_full(IntPtr array_class, ulong* lengths, ulong* lower_bounds) => _exports.il2cpp_array_new_full(array_class, lengths, lower_bounds);
     public static IntPtr il2cpp_bounded_array_class_get(IntPtr element_class, uint rank, bool bounded) => _exports.il2cpp_bounded_array_class_get(element_class, rank, bounded);
@@ -660,7 +660,7 @@ public static unsafe partial class IL2CPP
         // IL2CPP Versions: All
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-        public delegate IntPtr il2cpp_array_new_delegate(IntPtr elementIl2CppClass, ulong length);
+        public delegate IntPtr il2cpp_array_new_delegate(IntPtr elementIl2CppClass, uint length);
         // IL2CPP Versions: All
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Ansi)]

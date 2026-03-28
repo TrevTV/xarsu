@@ -42,6 +42,8 @@ rootCommand.SetAction(res =>
             new PublicizerProcessingLayer(),
             new PointerCtorInjectionProcessingLayer(),
             new PrimitiveImplicitConversionProcessingLayer(),
+            new ManagedTypeRemappingProcessingLayer(),
+            new OriginalNameInjectorProcessingLayer(),
         ],
         [new("corlib", corlibPath.FullName)]);
 });

@@ -43,6 +43,7 @@ rootCommand.SetAction(res =>
             new PointerCtorInjectionProcessingLayer(),
             new PrimitiveImplicitConversionProcessingLayer(),
             new ManagedTypeRemappingProcessingLayer(),
+            new ArrayRemappingProcessingLayer(),
             new OriginalNameInjectorProcessingLayer(),
         ],
         [new("corlib", corlibPath.FullName)]);

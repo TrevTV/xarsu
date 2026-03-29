@@ -49,6 +49,7 @@ internal class XarsuReferenceOutputFormat : AsmResolverDllOutputFormatThrowNull
         var il2cppNewObject = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.il2cpp_object_new));
         var il2cppGetIl2CppClass = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.GetIl2CppClass));
         var il2cppGetIl2CppMethod = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.GetIl2CppMethod));
+        var il2cppMakeGenericMethod = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.MakeGenericMethod));
         var il2cppInvokeMethod = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.InvokeMethod));
 
         var xarsuIl2CppObjectClass = appContext.ResolveTypeOrThrow(typeof(xarsu.Reference.Il2CppObject));
@@ -59,17 +60,12 @@ internal class XarsuReferenceOutputFormat : AsmResolverDllOutputFormatThrowNull
         var objPointerExplicitFromIntPtr = xarsuObjectPointerClass.GetExplicitConversionFrom(appContext.SystemTypes.SystemIntPtrType);
         var objPointerExplicitIntPtr = xarsuObjectPointerClass.GetExplicitConversionTo(appContext.SystemTypes.SystemIntPtrType);
 
+        var systemTypeType = appContext.SystemTypes.SystemTypeType;
+        var systemTypeGetFromHandle = systemTypeType.GetMethodByName("GetTypeFromHandle");
+
         var module = methodDef.DeclaringModule!;
         methodDef.CilMethodBody = new CilMethodBody();
         var il = methodDef.CilMethodBody.Instructions;
-
-        if (methodCtx is ConcreteGenericMethodAnalysisContext || methodDef.GenericParameters.Count > 0)
-        {
-            // TODO: generics, i'm not too sure how these work
-            EmitNotSupported(il, module,
-                $"Generic method {methodDef.DeclaringType?.FullName}.{methodDef.Name} is not supported.");
-            return;
-        }
 
         bool isStatic = methodDef.IsStatic;
         bool isVoid = methodDef.Signature?.ReturnType is CorLibTypeSignature { ElementType: ElementType.Void };
@@ -139,6 +135,35 @@ internal class XarsuReferenceOutputFormat : AsmResolverDllOutputFormatThrowNull
 
         il.Add(new CilInstruction(CilOpCodes.Call, il2cppGetIl2CppMethod.ToMethodDescriptor(module)));
         // now we have the MethodInfo pointer on the stack
+
+        // ----- 1.5. If we're generic, we need to make the generic method first -----
+        if (methodCtx is ConcreteGenericMethodAnalysisContext || methodDef.HasGenericParameters)
+        {
+            // build the type array
+            il.Add(new CilInstruction(CilOpCodes.Ldc_I4, methodDef.GenericParameters.Count));
+            il.Add(new CilInstruction(CilOpCodes.Newarr, appContext.SystemTypes.SystemTypeType.ToTypeSignature(module).ToTypeDefOrRef()));
+
+            for (int i = 0; i < methodDef.GenericParameters.Count; i++)
+            {
+                var param = methodDef.GenericParameters[i];
+
+                // arr[i] = typeof(T)
+                il.Add(new CilInstruction(CilOpCodes.Dup));
+                il.Add(new CilInstruction(CilOpCodes.Ldc_I4, i));
+
+                // refer to the generic parameter as !!i (method generic param by index)
+                var genericParamSig = new GenericParameterSignature(GenericParameterType.Method, i);
+                var typeSpec = new TypeSpecification(genericParamSig);
+                var importedTypeSpec = module.DefaultImporter.ImportType(typeSpec);
+
+                il.Add(new CilInstruction(CilOpCodes.Ldtoken, importedTypeSpec));
+                il.Add(new CilInstruction(CilOpCodes.Call, systemTypeGetFromHandle.ToMethodDescriptor(module)));
+                il.Add(new CilInstruction(CilOpCodes.Stelem_Ref));
+            }
+
+            // make the generic method
+            il.Add(new CilInstruction(CilOpCodes.Call, il2cppMakeGenericMethod.ToMethodDescriptor(module)));
+        }
 
         // ----- 2. Build the void** args array via IL2CPP.InvokeMethod -----
         // IL2CPP.InvokeMethod(IntPtr method, IntPtr instance, object?[] args) → object?

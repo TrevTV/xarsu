@@ -159,7 +159,7 @@ public static unsafe partial class IL2CPP
 
         // build the System.Type[] argument array
         IntPtr systemTypeArrayClass = il2cpp_array_class_get(systemTypeClass, 1);
-        Il2CppObjectArray typeArray = Il2CppObjectArray.New(systemTypeArrayClass, genericParamTypes.Length);
+        Il2CppArray typeArray = Il2CppArray.New(systemTypeArrayClass, genericParamTypes.Length);
         Debug.Assert(typeArray.Pointer != ObjectPointer.Null);
 
         for (int i = 0; i < genericParamTypes.Length; i++)

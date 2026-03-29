@@ -1,4 +1,6 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Diagnostics;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
 namespace xarsu.Reference;
@@ -149,6 +151,49 @@ public static unsafe partial class IL2CPP
         return IntPtr.Zero;
     }
 
+    public static IntPtr MakeGenericMethod(IntPtr methodInfo, params Type[] genericParamTypes)
+    {
+        Debug.Assert(il2cpp_method_is_generic(methodInfo));
+
+        IntPtr systemTypeClass = GetIl2CppClass("mscorlib.dll", "System", "Type");
+
+        // build the System.Type[] argument array
+        IntPtr systemTypeArrayClass = il2cpp_array_class_get(systemTypeClass, 1);
+        Il2CppObjectArray typeArray = Il2CppObjectArray.New(systemTypeArrayClass, genericParamTypes.Length);
+        Debug.Assert(typeArray.Pointer != ObjectPointer.Null);
+
+        for (int i = 0; i < genericParamTypes.Length; i++)
+            typeArray[i] = ResolveIl2CppType(genericParamTypes[i]);
+
+        // get MakeGenericMethod
+        IntPtr methodClass = il2cpp_method_get_class(methodInfo);
+        IntPtr methodObj = il2cpp_method_get_object(methodInfo, methodClass);
+        IntPtr methodObjClass = il2cpp_object_get_class(methodObj);
+        IntPtr makeGenericMethod = GetIl2CppMethod(methodObjClass, false, "MakeGenericMethod", "MethodInfo", ["Type[]"]);
+
+        // invoke RuntimeMethodInfo.MakeGenericMethod(typeArray)
+        IntPtr result = InvokeWithArray(makeGenericMethod, methodObj, typeArray.Pointer.Value);
+
+        return result == IntPtr.Zero ? IntPtr.Zero : il2cpp_method_get_from_reflection(result);
+    }
+
+    /// <summary>Resolves a managed Type to its IL2CPP System.Type object</summary>
+    public static IntPtr ResolveIl2CppType(Type type)
+    {
+        IntPtr internalFromHandle = GetIl2CppMethod(GetIl2CppClass("mscorlib.dll", "System", "Type"), false, "internal_from_handle", "System.Type", ["System.IntPtr"]);
+
+        OriginalTypeNameAttribute? attr = type.GetCustomAttribute<OriginalTypeNameAttribute>();
+
+        IntPtr il2cppClass = attr != null
+            ? GetIl2CppClass($"{attr.AssemblyName}.dll", attr.Namespace, attr.Name)
+            : GetIl2CppClass($"{type.Assembly!.GetName().Name}.dll", type.Namespace!, type.Name);
+
+        IntPtr typeHandle = il2cpp_class_get_type(il2cppClass);
+        void* typeHandlePtr = &typeHandle;
+        IntPtr systemType = Il2CppInvoke(internalFromHandle, IntPtr.Zero, &typeHandlePtr);
+        return systemType;
+    }
+
     /// <summary>
     /// Invokes an il2cpp method, boxes arguments from a managed object[] array, and returns
     /// the result as a boxed object (or null for void). Exceptions from il2cpp are rethrown.
@@ -163,50 +208,22 @@ public static unsafe partial class IL2CPP
     public static object? InvokeMethod(IntPtr method, IntPtr instance, object?[] args)
     {
         if (args == null || args.Length == 0)
-        {
-            IntPtr exc = IntPtr.Zero;
-            IntPtr result = il2cpp_runtime_invoke(method, instance, null, ref exc);
-            return UnboxResult(method, result);
-        }
+            return UnboxResult(method, Il2CppInvoke(method, instance, null));
 
         var ptrs = new void*[args.Length];
         var handles = new GCHandle[args.Length];
-
         try
         {
             for (int i = 0; i < args.Length; i++)
-            {
-                if (args[i] is string str)
-                {
-                    // Strings need to be converted to Il2Cpp strings
-                    ptrs[i] = (void*)ManagedStringToIl2Cpp(str);
-                }
-                else if (args[i] is Il2CppObject il2cppObj)
-                {
-                    // Il2CppObjects need to be boxed into a managed IL2CPP pointer
-                    IntPtr boxed = il2cppObj.Box();
-                    ptrs[i] = (void*)boxed;
-                }
-                else
-                {
-                    // Value types: pin and pass address directly
-                    handles[i] = GCHandle.Alloc(args[i], GCHandleType.Pinned);
-                    ptrs[i] = (void*)handles[i].AddrOfPinnedObject();
-                }
-            }
+                ptrs[i] = MarshalArgument(args[i], ref handles[i]);
 
             fixed (void** pArgs = ptrs)
-            {
-                IntPtr exc = IntPtr.Zero;
-                IntPtr result = il2cpp_runtime_invoke(method, instance, pArgs, ref exc);
-                return UnboxResult(method, result);
-            }
+                return UnboxResult(method, Il2CppInvoke(method, instance, pArgs));
         }
         finally
         {
-            for (int i = 0; i < handles.Length; i++)
-                if (handles[i].IsAllocated)
-                    handles[i].Free();
+            foreach (GCHandle h in handles)
+                if (h.IsAllocated) h.Free();
         }
     }
 
@@ -214,11 +231,57 @@ public static unsafe partial class IL2CPP
     // Internal helpers
     // =========================================================================
 
+    /// <summary>Invokes an IL2CPP method with a single IL2CPP array item</summary>
+    private static IntPtr InvokeWithArray(IntPtr method, IntPtr instance, IntPtr arrayItem)
+    {
+        void* arg = (void*)arrayItem;
+        void** pArgs = &arg;
+        return Il2CppInvoke(method, instance, pArgs);
+    }
+
+    /// <summary>il2cpp_runtime_invoke wrapper with exception handling</summary>
+    private static IntPtr Il2CppInvoke(IntPtr method, IntPtr instance, void** args)
+    {
+        IntPtr exc = IntPtr.Zero;
+        IntPtr result = il2cpp_runtime_invoke(method, instance, args, ref exc);
+
+        if (exc != IntPtr.Zero)
+        {
+            byte[] buf = new byte[1024];
+            fixed (byte* pBuf = buf)
+            {
+                // TODO: make an actual Il2CppException and throw it
+                il2cpp_format_exception(exc, (IntPtr)pBuf, buf.Length);
+                XarsuExports.Log($"Exception in {il2cpp_method_get_name(method)}: {Marshal.PtrToStringAnsi((IntPtr)pBuf)}");
+            }
+            return IntPtr.Zero;
+        }
+
+        return result;
+    }
+
+    /// <summary>Marshals a single managed argument to a pointer</summary>
+    private static void* MarshalArgument(object? arg, ref GCHandle handle)
+    {
+        switch (arg)
+        {
+            case string str:
+                return (void*)ManagedStringToIl2Cpp(str);
+
+            case Il2CppObject il2cppObj:
+                return (void*)il2cppObj.Box();
+
+            default:
+                handle = GCHandle.Alloc(arg, GCHandleType.Pinned);
+                return (void*)handle.AddrOfPinnedObject();
+        }
+    }
+
     /// <summary>
     /// After il2cpp_runtime_invoke returns, unbox the result to a managed object
     /// so that generated bodies can use Unbox_Any / Castclass on the result of InvokeMethod.
     /// </summary>
-    public static object? UnboxResult(IntPtr method, IntPtr result)
+    private static object? UnboxResult(IntPtr method, IntPtr result)
     {
         if (result == IntPtr.Zero) return null;
 

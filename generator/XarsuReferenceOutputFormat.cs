@@ -48,7 +48,7 @@ internal class XarsuReferenceOutputFormat : AsmResolverDllOutputFormatThrowNull
         var xarsuIl2CppStaticClass = appContext.ResolveTypeOrThrow(typeof(xarsu.Reference.IL2CPP));
         var il2cppNewObject = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.il2cpp_object_new));
         var il2cppGetIl2CppClass = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.GetIl2CppClass));
-        var il2cppGetIl2CppMethod = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.GetIl2CppMethod));
+        var il2cppGetIl2CppMethodByToken = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.GetIl2CppMethodByToken));
         var il2cppMakeGenericMethod = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.MakeGenericMethod));
         var il2cppInvokeMethod = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.InvokeMethod));
 
@@ -117,23 +117,9 @@ internal class XarsuReferenceOutputFormat : AsmResolverDllOutputFormatThrowNull
             il.Add(new CilInstruction(CilOpCodes.Call, baseCtor.ToMethodDescriptor(module))); // now call the internal ctor
         }
 
-        il.Add(new CilInstruction(CilOpCodes.Ldc_I4_0)); // isGeneric = false
-        il.Add(new CilInstruction(CilOpCodes.Ldstr, methodName));
-        il.Add(new CilInstruction(CilOpCodes.Ldstr, returnTypeName));
+        il.Add(new CilInstruction(CilOpCodes.Ldc_I4, (int)methodCtx.Token));
 
-        // build the string array for parameter types
-        il.Add(new CilInstruction(CilOpCodes.Ldc_I4, paramTypeNames.Length));
-        il.Add(new CilInstruction(CilOpCodes.Newarr,
-            module.CorLibTypeFactory.String.ToTypeDefOrRef()));
-        for (int i = 0; i < paramTypeNames.Length; i++)
-        {
-            il.Add(new CilInstruction(CilOpCodes.Dup));
-            il.Add(new CilInstruction(CilOpCodes.Ldc_I4, i));
-            il.Add(new CilInstruction(CilOpCodes.Ldstr, paramTypeNames[i]));
-            il.Add(new CilInstruction(CilOpCodes.Stelem_Ref));
-        }
-
-        il.Add(new CilInstruction(CilOpCodes.Call, il2cppGetIl2CppMethod.ToMethodDescriptor(module)));
+        il.Add(new CilInstruction(CilOpCodes.Call, il2cppGetIl2CppMethodByToken.ToMethodDescriptor(module)));
         // now we have the MethodInfo pointer on the stack
 
         // ----- 1.5. If we're generic, we need to make the generic method first -----

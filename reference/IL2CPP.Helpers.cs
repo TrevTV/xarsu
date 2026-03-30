@@ -151,6 +151,20 @@ public static unsafe partial class IL2CPP
         return IntPtr.Zero;
     }
 
+    public static IntPtr GetIl2CppMethodByToken(IntPtr clazz, int token)
+    {
+        var iter = IntPtr.Zero;
+        IntPtr method;
+        while ((method = il2cpp_class_get_methods(clazz, ref iter)) != IntPtr.Zero)
+        {
+            if (il2cpp_method_get_token(method) != token)
+                continue;
+
+            return method;
+        }
+
+        return IntPtr.Zero;
+    }
     public static IntPtr MakeGenericMethod(IntPtr methodInfo, params Type[] genericParamTypes)
     {
         Debug.Assert(il2cpp_method_is_generic(methodInfo));

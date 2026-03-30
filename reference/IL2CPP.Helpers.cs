@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
@@ -165,6 +166,19 @@ public static unsafe partial class IL2CPP
 
         return IntPtr.Zero;
     }
+
+    public static IntPtr GetIl2CppField(IntPtr clazz, string fieldName)
+    {
+        IntPtr iter = IntPtr.Zero;
+        IntPtr field;
+        while ((field = il2cpp_class_get_fields(clazz, ref iter)) != IntPtr.Zero)
+        {
+            if (il2cpp_field_get_name(field) == fieldName)
+                return field;
+        }
+        throw new KeyNotFoundException($"Field '{fieldName}' not found in class '{il2cpp_class_get_name(clazz)}'");
+    }
+
     public static IntPtr MakeGenericMethod(IntPtr methodInfo, params Type[] genericParamTypes)
     {
         Debug.Assert(il2cpp_method_is_generic(methodInfo));
@@ -221,18 +235,19 @@ public static unsafe partial class IL2CPP
     /// </summary>
     public static object? InvokeMethod(IntPtr method, IntPtr instance, object?[] args)
     {
+        var returnType = il2cpp_method_get_return_type(method);
         if (args == null || args.Length == 0)
-            return UnboxResult(method, Il2CppInvoke(method, instance, null));
+            return UnboxResult(returnType, Il2CppInvoke(method, instance, null));
 
         var ptrs = new void*[args.Length];
         var handles = new GCHandle[args.Length];
         try
         {
             for (int i = 0; i < args.Length; i++)
-                ptrs[i] = MarshalArgument(args[i], ref handles[i]);
+                ptrs[i] = MarshalMethodArgument(args[i], ref handles[i]);
 
             fixed (void** pArgs = ptrs)
-                return UnboxResult(method, Il2CppInvoke(method, instance, pArgs));
+                return UnboxResult(returnType, Il2CppInvoke(method, instance, pArgs));
         }
         finally
         {
@@ -275,7 +290,7 @@ public static unsafe partial class IL2CPP
     }
 
     /// <summary>Marshals a single managed argument to a pointer</summary>
-    private static void* MarshalArgument(object? arg, ref GCHandle handle)
+    private static void* MarshalMethodArgument(object? arg, ref GCHandle handle)
     {
         switch (arg)
         {
@@ -292,15 +307,12 @@ public static unsafe partial class IL2CPP
     }
 
     /// <summary>
-    /// After il2cpp_runtime_invoke returns, unbox the result to a managed object
-    /// so that generated bodies can use Unbox_Any / Castclass on the result of InvokeMethod.
+    /// Unbox the given pointer to a managed object
     /// </summary>
-    private static object? UnboxResult(IntPtr method, IntPtr result)
+    private static object? UnboxResult(IntPtr returnType, IntPtr result)
     {
         if (result == IntPtr.Zero) return null;
 
-        // Determine if return type is a value type.
-        var returnType = il2cpp_method_get_return_type(method);
         int typeEnum = il2cpp_type_get_type(returnType);
 
         // Il2CppTypeEnum value types are in the range 2..13 (BOOLEAN through R8, etc.)
@@ -308,9 +320,7 @@ public static unsafe partial class IL2CPP
         // See: https://github.com/Perfare/Il2CppDumper/blob/master/Il2CppDumper/Il2Cpp/Il2CppClass.cs#L96
         bool isValueType = typeEnum is >= 2 and <= 13;
         bool isString = typeEnum == 14; // special case: strings are reference types but need to be converted back to managed strings
-
-        XarsuExports.Log($"Unboxing result of type enum {typeEnum} (isValueType={isValueType})");
-
+        
         if (isValueType)
         {
             // il2cpp_runtime_invoke boxes value type results automatically.
@@ -339,12 +349,55 @@ public static unsafe partial class IL2CPP
         }
 
         if (isString)
-        {
             return Il2CppStringToManaged(result);
-        }
 
         // Reference type: return the pointer so the generated func can wrap it itself
         return result;
+    }
+
+    public static object? ReadField(IntPtr fieldPtr, IntPtr instance)
+    {
+        IntPtr type = il2cpp_field_get_type(fieldPtr);
+        IntPtr fieldValue = il2cpp_field_get_value_object(fieldPtr, instance);
+        return UnboxResult(type, fieldValue);
+    }
+
+    public static void WriteField(IntPtr fieldPtr, IntPtr instance, object? value)
+    {
+        void* rawValue = value switch
+        {
+            null => null,
+            string str => (void*)ManagedStringToIl2Cpp(str),
+            Il2CppObject il2cppObj => (void*)il2cppObj.Pointer,
+            bool v => CopyToUnmanaged(v),
+            byte v => CopyToUnmanaged(v),
+            sbyte v => CopyToUnmanaged(v),
+            short v => CopyToUnmanaged(v),
+            ushort v => CopyToUnmanaged(v),
+            int v => CopyToUnmanaged(v),
+            uint v => CopyToUnmanaged(v),
+            long v => CopyToUnmanaged(v),
+            ulong v => CopyToUnmanaged(v),
+            float v => CopyToUnmanaged(v),
+            double v => CopyToUnmanaged(v),
+            char v => CopyToUnmanaged(v),
+            _ => null,
+        };
+
+        int flags = il2cpp_field_get_flags(fieldPtr);
+        bool isStatic = (flags & 0x10) != 0;
+
+        if (isStatic)
+            il2cpp_field_static_set_value(fieldPtr, rawValue);
+        else
+            il2cpp_field_set_value(instance, fieldPtr, rawValue);
+    }
+
+    private static void* CopyToUnmanaged<T>(T value) where T : unmanaged
+    {
+        void* mem = NativeMemory.Alloc((nuint)sizeof(T));
+        *(T*)mem = value;
+        return mem;
     }
 
     private static void TraceLog(string message, params object?[] args)

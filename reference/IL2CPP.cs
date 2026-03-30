@@ -64,10 +64,10 @@ public static unsafe partial class IL2CPP
     public static IntPtr il2cpp_class_from_name(IntPtr image, string namespaze, string name) => _exports.il2cpp_class_from_name(image, Marshal.StringToCoTaskMemUTF8(namespaze), Marshal.StringToCoTaskMemUTF8(name));
     public static IntPtr il2cpp_class_from_system_type(IntPtr type) => _exports.il2cpp_class_from_system_type(type);
     public static IntPtr il2cpp_class_get_element_class(IntPtr klass) => _exports.il2cpp_class_get_element_class(klass);
-    public static IntPtr il2cpp_class_get_events(IntPtr klass, void** iter) => _exports.il2cpp_class_get_events(klass, iter);
-    public static IntPtr il2cpp_class_get_fields(IntPtr klass, void** iter) => _exports.il2cpp_class_get_fields(klass, iter);
-    public static IntPtr il2cpp_class_get_interfaces(IntPtr klass, void** iter) => _exports.il2cpp_class_get_interfaces(klass, iter);
-    public static IntPtr il2cpp_class_get_properties(IntPtr klass, void** iter) => _exports.il2cpp_class_get_properties(klass, iter);
+    public static IntPtr il2cpp_class_get_events(IntPtr klass, ref IntPtr iter) => _exports.il2cpp_class_get_events(klass, ref iter);
+    public static IntPtr il2cpp_class_get_fields(IntPtr klass, ref IntPtr iter) => _exports.il2cpp_class_get_fields(klass, ref iter);
+    public static IntPtr il2cpp_class_get_interfaces(IntPtr klass, ref IntPtr iter) => _exports.il2cpp_class_get_interfaces(klass, ref iter);
+    public static IntPtr il2cpp_class_get_properties(IntPtr klass, ref IntPtr iter) => _exports.il2cpp_class_get_properties(klass, ref iter);
     public static IntPtr il2cpp_class_get_property_from_name(IntPtr klass, nint name) => _exports.il2cpp_class_get_property_from_name(klass, name);
     public static IntPtr il2cpp_class_get_field_from_name(IntPtr klass, string name) => _exports.il2cpp_class_get_field_from_name(klass, Marshal.StringToCoTaskMemUTF8(name));
     public static IntPtr il2cpp_class_get_methods(IntPtr klass, ref IntPtr iter) => _exports.il2cpp_class_get_methods(klass, ref iter);
@@ -729,19 +729,19 @@ public static unsafe partial class IL2CPP
         // IL2CPP Versions: All
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-        public delegate IntPtr il2cpp_class_get_events_delegate(IntPtr klass, void** iter);
+        public delegate IntPtr il2cpp_class_get_events_delegate(IntPtr klass, ref IntPtr iter);
         // IL2CPP Versions: All
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-        public delegate IntPtr il2cpp_class_get_fields_delegate(IntPtr klass, void** iter);
+        public delegate IntPtr il2cpp_class_get_fields_delegate(IntPtr klass, ref IntPtr iter);
         // IL2CPP Versions: All
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-        public delegate IntPtr il2cpp_class_get_interfaces_delegate(IntPtr klass, void** iter);
+        public delegate IntPtr il2cpp_class_get_interfaces_delegate(IntPtr klass, ref IntPtr iter);
         // IL2CPP Versions: All
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-        public delegate IntPtr il2cpp_class_get_properties_delegate(IntPtr klass, void** iter);
+        public delegate IntPtr il2cpp_class_get_properties_delegate(IntPtr klass, ref IntPtr iter);
         // IL2CPP Versions: All
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Ansi)]

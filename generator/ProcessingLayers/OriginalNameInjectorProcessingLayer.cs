@@ -1,10 +1,8 @@
 ﻿using Cpp2IL.Core.Api;
 using Cpp2IL.Core.Model.Contexts;
 using Cpp2IL.Core.Model.CustomAttributes;
-using System.Runtime.InteropServices;
 using xarsu.Generator.Extensions;
 using xarsu.Reference;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace xarsu.Generator.ProcessingLayers;
 
@@ -22,7 +20,7 @@ public sealed class OriginalNameInjectorProcessingLayer : Cpp2IlProcessingLayer
 
         foreach (var assembly in appContext.Assemblies)
         {
-            if (assembly.IsInjected)
+            if (assembly.IsReferenceAssembly || assembly.IsInjected)
                 continue;
 
             foreach (var type in assembly.Types)
@@ -30,41 +28,54 @@ public sealed class OriginalNameInjectorProcessingLayer : Cpp2IlProcessingLayer
                 if (type.IsInjected)
                     continue;
 
-                AddAttribute(type, typeNameAttributeCtor, type.DeclaringAssembly!.DefaultName, type.DefaultNamespace, type.DefaultName);
+                AddAttributeIfOverridden(
+                    type,
+                    typeNameAttributeCtor,
+                    [type.DeclaringAssembly!.OverrideName, type.OverrideNamespace, type.OverrideName],
+                    type.DeclaringAssembly!.DefaultName, type.DefaultNamespace, type.DefaultName
+                );
 
                 foreach (var field in type.Fields)
                 {
                     if (field.IsInjected)
                         continue;
-                    AddAttribute(field, nameAttributeCtor, field.DefaultName);
+                    AddAttributeIfOverridden(field, nameAttributeCtor, [field.OverrideName], field.DefaultName);
                 }
 
                 foreach (var property in type.Properties)
                 {
                     if (property.IsInjected)
                         continue;
-                    AddAttribute(property, nameAttributeCtor, property.DefaultName);
+                    AddAttributeIfOverridden(property, nameAttributeCtor, [property.OverrideName], property.DefaultName);
                 }
 
                 foreach (var evnt in type.Events)
                 {
                     if (evnt.IsInjected)
                         continue;
-                    AddAttribute(evnt, nameAttributeCtor, evnt.DefaultName);
+                    AddAttributeIfOverridden(evnt, nameAttributeCtor, [evnt.OverrideName], evnt.DefaultName);
                 }
 
                 foreach (var method in type.Methods)
                 {
                     if (method.IsInjected)
                         continue;
-                    AddAttribute(method, nameAttributeCtor, method.DefaultName);
+                    AddAttributeIfOverridden(method, nameAttributeCtor, [method.OverrideName], method.DefaultName);
                 }
             }
         }
     }
 
-    private static void AddAttribute(HasCustomAttributesAndName item, MethodAnalysisContext ctor, params string[] datas)
+    private static void AddAttributeIfOverridden(HasCustomAttributesAndName item, MethodAnalysisContext ctor, string?[] overrideDatas, params string[] datas)
     {
+        // skip if no override data is present, as the attribute would be redundant
+        if (!overrideDatas.Any(d => d != null))
+            return;
+
+        // skip if all override datas are the same as the originals
+        if (overrideDatas.Zip(datas, (o, d) => (o, d)).All(t => t.o == t.d))
+            return;
+
         item.CustomAttributes ??= [];
 
         var customAttribute = new AnalyzedCustomAttribute(ctor);

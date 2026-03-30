@@ -29,15 +29,13 @@ public class PointerCtorInjectionProcessingLayer : Cpp2IlProcessingLayer
 
             var methodContext = new InjectedMethodAnalysisContext(
                 type, ".ctor",
-                type.AppContext.SystemTypes.SystemObjectType,
+                type.AppContext.SystemTypes.SystemVoidType,
                 MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName,
-                Enumerable.Repeat(type.AppContext.SystemTypes.SystemObjectType, 1).ToArray(),
+                [.. Enumerable.Repeat(type.AppContext.SystemTypes.SystemObjectType, 1)],
                 ["ptr"],
-                [System.Reflection.ParameterAttributes.None],
-                System.Reflection.MethodImplAttributes.IL);
+                [System.Reflection.ParameterAttributes.None]);
 
             type.Methods.Add(methodContext);
-            methodContext.SetDefaultReturnType(type.AppContext.SystemTypes.SystemVoidType);
             var parameter = (InjectedParameterAnalysisContext)methodContext.Parameters[0];
             parameter.SetDefaultParameterType(type.AppContext.ResolveTypeOrThrow(typeof(xarsu.Reference.ObjectPointer)));
             methodContext.IsInjected = true;

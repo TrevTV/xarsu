@@ -210,11 +210,7 @@ public static unsafe partial class IL2CPP
     {
         IntPtr internalFromHandle = GetIl2CppMethod(GetIl2CppClass("mscorlib.dll", "System", "Type"), false, "internal_from_handle", "System.Type", ["System.IntPtr"]);
 
-        OriginalTypeNameAttribute? attr = type.GetCustomAttribute<OriginalTypeNameAttribute>();
-
-        IntPtr il2cppClass = attr != null
-            ? GetIl2CppClass($"{attr.AssemblyName}.dll", attr.Namespace, attr.Name)
-            : GetIl2CppClass($"{type.Assembly!.GetName().Name}.dll", type.Namespace!, type.Name);
+        IntPtr il2cppClass = GetIl2CppClassFromType(type);
 
         IntPtr typeHandle = il2cpp_class_get_type(il2cppClass);
         void* typeHandlePtr = &typeHandle;
@@ -222,22 +218,79 @@ public static unsafe partial class IL2CPP
         return systemType;
     }
 
+    public static IntPtr GetIl2CppClassFromType(Type type)
+    {
+        OriginalTypeNameAttribute? attr = type.GetCustomAttribute<OriginalTypeNameAttribute>();
+        return attr != null
+            ? GetIl2CppClass($"{attr.AssemblyName}.dll", attr.Namespace, attr.Name)
+            : GetIl2CppClass($"{type.Assembly!.GetName().Name}.dll", type.Namespace!, type.Name);
+    }
+
     /// <summary>
     /// Invokes an il2cpp method, boxes arguments from a managed object[] array, and returns
     /// the result as a boxed object (or null for void). Exceptions from il2cpp are rethrown.
-    ///
-    /// Signature used by generated method bodies:
-    ///   object? IL2CPP.InvokeMethod(IntPtr method, IntPtr instance, object?[] args)
-    ///
-    /// - method:   IntPtr from GetIl2CppMethod
-    /// - instance: Il2CppObject.Pointer for instance methods; IntPtr.Zero for static
-    /// - args:     managed object[] — value types must already be boxed by the generated body
     /// </summary>
-    public static object? InvokeMethod(IntPtr method, IntPtr instance, object?[] args)
+    public static T? InvokeMethod<T>(IntPtr method, IntPtr instance, object?[] args)
+    {
+        var returnType = il2cpp_method_get_return_type(method);
+        return UnboxResult<T>(returnType, InvokeMethodInternal(method, instance, args));
+    }
+
+    public static void InvokeVoidMethod(IntPtr method, IntPtr instance, object?[] args)
+    {
+        var returnType = il2cpp_method_get_return_type(method);
+        if (il2cpp_type_get_type(returnType) != 1) // not void
+            throw new InvalidOperationException("Return type must be void for InvokeVoidMethod");
+        InvokeMethodInternal(method, instance, args);
+    }
+
+    public static T? ReadField<T>(IntPtr fieldPtr, IntPtr instance)
+    {
+        IntPtr type = il2cpp_field_get_type(fieldPtr);
+        IntPtr fieldValue = il2cpp_field_get_value_object(fieldPtr, instance);
+        return UnboxResult<T>(type, fieldValue);
+    }
+
+    public static void WriteField(IntPtr fieldPtr, IntPtr instance, object? value)
+    {
+        void* rawValue = value switch
+        {
+            null => null,
+            string str => (void*)ManagedStringToIl2Cpp(str),
+            Il2CppObject il2cppObj => (void*)il2cppObj.Pointer,
+            bool v => NativeUtilities.CopyToUnmanaged(v),
+            byte v => NativeUtilities.CopyToUnmanaged(v),
+            sbyte v => NativeUtilities.CopyToUnmanaged(v),
+            short v => NativeUtilities.CopyToUnmanaged(v),
+            ushort v => NativeUtilities.CopyToUnmanaged(v),
+            int v => NativeUtilities.CopyToUnmanaged(v),
+            uint v => NativeUtilities.CopyToUnmanaged(v),
+            long v => NativeUtilities.CopyToUnmanaged(v),
+            ulong v => NativeUtilities.CopyToUnmanaged(v),
+            float v => NativeUtilities.CopyToUnmanaged(v),
+            double v => NativeUtilities.CopyToUnmanaged(v),
+            char v => NativeUtilities.CopyToUnmanaged(v),
+            _ => null,
+        };
+
+        int flags = il2cpp_field_get_flags(fieldPtr);
+        bool isStatic = (flags & 0x10) != 0;
+
+        if (isStatic)
+            il2cpp_field_static_set_value(fieldPtr, rawValue);
+        else
+            il2cpp_field_set_value(instance, fieldPtr, rawValue);
+    }
+
+    // =========================================================================
+    // Internal helpers
+    // =========================================================================
+
+    private static IntPtr InvokeMethodInternal(IntPtr method, IntPtr instance, object?[] args)
     {
         var returnType = il2cpp_method_get_return_type(method);
         if (args == null || args.Length == 0)
-            return UnboxResult(returnType, Il2CppInvoke(method, instance, null));
+            return Il2CppInvoke(method, instance, null);
 
         var ptrs = new void*[args.Length];
         var handles = new GCHandle[args.Length];
@@ -245,9 +298,8 @@ public static unsafe partial class IL2CPP
         {
             for (int i = 0; i < args.Length; i++)
                 ptrs[i] = MarshalMethodArgument(args[i], ref handles[i]);
-
             fixed (void** pArgs = ptrs)
-                return UnboxResult(returnType, Il2CppInvoke(method, instance, pArgs));
+                return Il2CppInvoke(method, instance, pArgs);
         }
         finally
         {
@@ -255,10 +307,6 @@ public static unsafe partial class IL2CPP
                 if (h.IsAllocated) h.Free();
         }
     }
-
-    // =========================================================================
-    // Internal helpers
-    // =========================================================================
 
     /// <summary>Invokes an IL2CPP method with a single IL2CPP array item</summary>
     private static IntPtr InvokeWithArray(IntPtr method, IntPtr instance, IntPtr arrayItem)
@@ -300,6 +348,9 @@ public static unsafe partial class IL2CPP
             case Il2CppObject il2cppObj:
                 return (void*)il2cppObj.Box();
 
+            case IIl2CppStruct il2cppStruct:
+                return (void*)il2cppStruct.WriteToNative();
+
             default:
                 handle = GCHandle.Alloc(arg, GCHandleType.Pinned);
                 return (void*)handle.AddrOfPinnedObject();
@@ -309,9 +360,9 @@ public static unsafe partial class IL2CPP
     /// <summary>
     /// Unbox the given pointer to a managed object
     /// </summary>
-    private static object? UnboxResult(IntPtr returnType, IntPtr result)
+    private static T? UnboxResult<T>(IntPtr returnType, IntPtr result)
     {
-        if (result == IntPtr.Zero) return null;
+        if (result == IntPtr.Zero) return default;
 
         int typeEnum = il2cpp_type_get_type(returnType);
 
@@ -320,84 +371,32 @@ public static unsafe partial class IL2CPP
         // See: https://github.com/Perfare/Il2CppDumper/blob/master/Il2CppDumper/Il2Cpp/Il2CppClass.cs#L96
         bool isValueType = typeEnum is >= 2 and <= 13;
         bool isString = typeEnum == 14; // special case: strings are reference types but need to be converted back to managed strings
-        
+
+        if (typeEnum == 0x11) // struct
+            return UnboxStruct<T>(result);
         if (isValueType)
-        {
-            // il2cpp_runtime_invoke boxes value type results automatically.
-            // We need to unbox to get the raw bytes, then re-box as a managed type.
-            void* data = il2cpp_object_unbox(result);
-
-            // Map common type enums to managed types.
-            return typeEnum switch
-            {
-                2 => *(bool*)data,
-                3 => *(char*)data,
-                4 => *(sbyte*)data,
-                5 => *(byte*)data,
-                6 => *(short*)data,
-                7 => *(ushort*)data,
-                8 => *(int*)data,
-                9 => *(uint*)data,
-                10 => *(long*)data,
-                11 => *(ulong*)data,
-                12 => *(float*)data,
-                13 => *(double*)data,
-                // VALUETYPE / GENERICINST / etc.: return a raw IntPtr that
-                // generated Unbox_Any will handle if the generated return type is a struct.
-                _ => (IntPtr)data,
-            };
-        }
-
+            return UnboxValueTypeUnsafe<T>(result);
         if (isString)
-            return Il2CppStringToManaged(result);
-
-        // Reference type: return the pointer so the generated func can wrap it itself
-        return result;
+            return (T?)(object?)Il2CppStringToManaged(result);
+        if (typeof(Il2CppObject).IsAssignableFrom(typeof(T)))
+            return (T?)(object?)Il2CppObject.Wrap(typeof(T), result);
+        return default;
     }
 
-    public static object? ReadField(IntPtr fieldPtr, IntPtr instance)
+    private static T? UnboxStruct<T>(IntPtr ptr)
     {
-        IntPtr type = il2cpp_field_get_type(fieldPtr);
-        IntPtr fieldValue = il2cpp_field_get_value_object(fieldPtr, instance);
-        return UnboxResult(type, fieldValue);
-    }
-
-    public static void WriteField(IntPtr fieldPtr, IntPtr instance, object? value)
-    {
-        void* rawValue = value switch
+        if (typeof(IIl2CppStruct).IsAssignableFrom(typeof(T)))
         {
-            null => null,
-            string str => (void*)ManagedStringToIl2Cpp(str),
-            Il2CppObject il2cppObj => (void*)il2cppObj.Pointer,
-            bool v => CopyToUnmanaged(v),
-            byte v => CopyToUnmanaged(v),
-            sbyte v => CopyToUnmanaged(v),
-            short v => CopyToUnmanaged(v),
-            ushort v => CopyToUnmanaged(v),
-            int v => CopyToUnmanaged(v),
-            uint v => CopyToUnmanaged(v),
-            long v => CopyToUnmanaged(v),
-            ulong v => CopyToUnmanaged(v),
-            float v => CopyToUnmanaged(v),
-            double v => CopyToUnmanaged(v),
-            char v => CopyToUnmanaged(v),
-            _ => null,
-        };
-
-        int flags = il2cpp_field_get_flags(fieldPtr);
-        bool isStatic = (flags & 0x10) != 0;
-
-        if (isStatic)
-            il2cpp_field_static_set_value(fieldPtr, rawValue);
-        else
-            il2cpp_field_set_value(instance, fieldPtr, rawValue);
+            IntPtr dataPtr = new(il2cpp_object_unbox(ptr));
+            return (T)((IIl2CppStruct)default(T)!).ReadFromNative(dataPtr);
+        }
+        return default;
     }
 
-    private static void* CopyToUnmanaged<T>(T value) where T : unmanaged
+    private static T? UnboxValueTypeUnsafe<T>(IntPtr result)
     {
-        void* mem = NativeMemory.Alloc((nuint)sizeof(T));
-        *(T*)mem = value;
-        return mem;
+        void* data = il2cpp_object_unbox(result);
+        return Unsafe.Read<T>(data);
     }
 
     private static void TraceLog(string message, params object?[] args)

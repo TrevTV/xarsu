@@ -49,6 +49,16 @@ public class Il2CppObject
         return obj;
     }
 
+    public static Il2CppObject? Wrap(Type type, IntPtr ptr)
+    {
+        if (!typeof(Il2CppObject).IsAssignableFrom(type))
+            throw new ArgumentException($"Type {type.FullName} must derive from Il2CppObject.", nameof(type));
+
+        var obj = RuntimeHelpers.GetUninitializedObject(type) as Il2CppObject;
+        obj?.Initialize(ptr);
+        return obj;
+    }
+
     public override string ToString()
         => $"[Il2CppObject 0x{Pointer:X}]";
 

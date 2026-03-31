@@ -63,11 +63,11 @@ internal class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
         var xarsuIl2CppStaticClass = appContext.ResolveTypeOrThrow(typeof(xarsu.Reference.IL2CPP));
         var il2cppGetIl2CppClass = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.GetIl2CppClass));
         var il2cppGetIl2CppField = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.GetIl2CppField));
-        var il2cppReadField = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.ReadField));
+        var il2cppReadField = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.ReadField)).MakeGenericInstanceMethod(field.FieldType);
 
         var xarsuIl2CppObjectClass = appContext.ResolveTypeOrThrow(typeof(xarsu.Reference.Il2CppObject));
         var il2cppObjectGetPointer = xarsuIl2CppObjectClass.GetPropertyByName(nameof(xarsu.Reference.Il2CppObject.Pointer)).Getter!;
-        var il2cppObjectWrap = xarsuIl2CppObjectClass.GetMethodByName(nameof(xarsu.Reference.Il2CppObject.Wrap))!.MakeConcreteGenericMethod([], [field.FieldType]);
+        var il2cppObjectWrap = xarsuIl2CppObjectClass.Methods.First(m => m.Name == nameof(xarsu.Reference.Il2CppObject.Wrap) && m.GenericParameters.Count == 1)!.MakeConcreteGenericMethod([], [field.FieldType]);
 
         var xarsuObjectPointerClass = appContext.ResolveTypeOrThrow(typeof(xarsu.Reference.ObjectPointer));
         var objPointerExplicitFromIntPtr = xarsuObjectPointerClass.GetExplicitConversionFrom(appContext.SystemTypes.SystemIntPtrType);
@@ -115,23 +115,8 @@ internal class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
             instructions.Add(new(CilOpCodes.Call, objPointerExplicitIntPtr));
         }
 
-        // call ReadField to read the field value
+        // call ReadField
         instructions.Add(new(CilOpCodes.Call, il2cppReadField));
-
-        var fieldType = field.FieldType;
-        if (fieldType.IsValueType)
-            instructions.Add(new(CilOpCodes.Unbox_Any, fieldType));
-        else if (fieldType.Name == "System.String")
-            // proper conversion is handled by ReadField
-            instructions.Add(new(CilOpCodes.Castclass, field));
-        else
-        {
-            // cast the object? to IntPtr
-            instructions.Add(new(CilOpCodes.Unbox_Any, appContext.SystemTypes.SystemIntPtrType));
-            // call Il2CppObject.Wrap<T>() on the pointer
-            instructions.Add(new(CilOpCodes.Call, il2cppObjectWrap));
-        }
-
         instructions.Add(new(CilOpCodes.Ret));
 
         getter.PutExtraData(new TranslatedMethodBody()
@@ -153,7 +138,7 @@ internal class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
 
         var xarsuIl2CppObjectClass = appContext.ResolveTypeOrThrow(typeof(xarsu.Reference.Il2CppObject));
         var il2cppObjectGetPointer = xarsuIl2CppObjectClass.GetPropertyByName(nameof(xarsu.Reference.Il2CppObject.Pointer)).Getter!;
-        var il2cppObjectWrap = xarsuIl2CppObjectClass.GetMethodByName(nameof(xarsu.Reference.Il2CppObject.Wrap))!.MakeConcreteGenericMethod([], [field.FieldType]);
+        var il2cppObjectWrap = xarsuIl2CppObjectClass.Methods.First(m => m.Name == nameof(xarsu.Reference.Il2CppObject.Wrap) && m.GenericParameters.Count == 1)!.MakeConcreteGenericMethod([], [field.FieldType]);
 
         var xarsuObjectPointerClass = appContext.ResolveTypeOrThrow(typeof(xarsu.Reference.ObjectPointer));
         var objPointerExplicitFromIntPtr = xarsuObjectPointerClass.GetExplicitConversionFrom(appContext.SystemTypes.SystemIntPtrType);

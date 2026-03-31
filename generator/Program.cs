@@ -45,6 +45,7 @@ rootCommand.SetAction(res =>
             new ManagedTypeRemappingProcessingLayer(),
             new ArrayRemappingProcessingLayer(),
             new FieldAccessorProcessingLayer(),
+            new StructInterfaceInjectorProcessingLayer(),
             new OriginalNameInjectorProcessingLayer(),
         ],
         [new("corlib", corlibPath.FullName)]);

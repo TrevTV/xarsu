@@ -19,15 +19,19 @@ public unsafe class Il2CppArray : Il2CppObject, ICollection, IEnumerable
         return new Il2CppArray((ObjectPointer)ptr);
     }
 
-    public static Il2CppArray<T> New<T>(IntPtr elementClass, int length) where T : Il2CppObject
+    public static Il2CppArray<T> New<T>(int length, int rank = 1) where T : Il2CppObject
     {
-        IntPtr ptr = IL2CPP.il2cpp_array_new(elementClass, (uint)length);
+        IntPtr clazz = IL2CPP.GetIl2CppClassFromType(typeof(T));
+        IntPtr arrayClass = IL2CPP.il2cpp_array_class_get(clazz, (uint)rank);
+        IntPtr ptr = IL2CPP.il2cpp_array_new(arrayClass, (uint)length);
         return new Il2CppArray<T>((ObjectPointer)ptr);
     }
 
-    public static Il2CppValueArray<T> NewValue<T>(IntPtr elementClass, int length) where T : unmanaged
+    public static Il2CppValueArray<T> NewValue<T>(int length, int rank = 1) where T : unmanaged
     {
-        IntPtr ptr = IL2CPP.il2cpp_array_new(elementClass, (uint)length);
+        IntPtr clazz = IL2CPP.GetIl2CppClassFromType(typeof(T));
+        IntPtr arrayClass = IL2CPP.il2cpp_array_class_get(clazz, (uint)rank);
+        IntPtr ptr = IL2CPP.il2cpp_array_new(arrayClass, (uint)length);
         return new Il2CppValueArray<T>((ObjectPointer)ptr);
     }
 

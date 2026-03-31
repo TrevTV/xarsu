@@ -51,10 +51,11 @@ internal class XarsuReferenceOutputFormat : AsmResolverDllOutputFormatThrowNull
         var il2cppGetIl2CppMethodByToken = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.GetIl2CppMethodByToken));
         var il2cppMakeGenericMethod = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.MakeGenericMethod));
         var il2cppInvokeMethod = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.InvokeMethod));
+        var il2cppInvokeVoidMethod = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.InvokeVoidMethod));
 
         var xarsuIl2CppObjectClass = appContext.ResolveTypeOrThrow(typeof(xarsu.Reference.Il2CppObject));
         var il2cppObjectGetPointer = xarsuIl2CppObjectClass.GetPropertyByName(nameof(xarsu.Reference.Il2CppObject.Pointer)).Getter!;
-        var il2cppObjectWrap = xarsuIl2CppObjectClass.GetMethodByName(nameof(xarsu.Reference.Il2CppObject.Wrap))!.MakeConcreteGenericMethod([], [methodCtx.ReturnType]);
+        var il2cppObjectWrap = xarsuIl2CppObjectClass.Methods.First(m => m.Name == nameof(xarsu.Reference.Il2CppObject.Wrap) && m.GenericParameters.Count == 1)!.MakeConcreteGenericMethod([], [methodCtx.ReturnType]);
 
         var xarsuObjectPointerClass = appContext.ResolveTypeOrThrow(typeof(xarsu.Reference.ObjectPointer));
         var objPointerExplicitFromIntPtr = xarsuObjectPointerClass.GetExplicitConversionFrom(appContext.SystemTypes.SystemIntPtrType);
@@ -91,7 +92,7 @@ internal class XarsuReferenceOutputFormat : AsmResolverDllOutputFormatThrowNull
         il.Add(new CilInstruction(CilOpCodes.Call, il2cppGetIl2CppClass.ToMethodDescriptor(module)));
         // class is now found on the stack
 
-        if (isCtor)
+        if (isCtor && !declaringType.IsValueType) // ignore struct constructors, they don't call a base constructor and don't need an object allocated beforehand
         {
             // setup a local variable for our object
             CilLocalVariable ctorLocalObj = new(module.CorLibTypeFactory.IntPtr);
@@ -196,36 +197,20 @@ internal class XarsuReferenceOutputFormat : AsmResolverDllOutputFormatThrowNull
             il.Add(new CilInstruction(CilOpCodes.Stelem_Ref));
         }
 
-        il.Add(new CilInstruction(CilOpCodes.Call, il2cppInvokeMethod.ToMethodDescriptor(module)));
-        // object? result is now on the stack
-
-        // ----- 3. Handle return value -----
         if (isVoid)
         {
-            il.Add(new CilInstruction(CilOpCodes.Pop));
+            il.Add(new CilInstruction(CilOpCodes.Call, il2cppInvokeVoidMethod.ToMethodDescriptor(module)));
         }
         else
         {
-            var returnType = methodDef.Signature!.ReturnType;
-            if (IsValueOrPrimitive(returnType))
-            {
-                // Unbox value type result.
-                il.Add(new CilInstruction(CilOpCodes.Unbox_Any, returnType.ToTypeDefOrRef()));
-            }
-            else if (returnType.FullName == "System.String")
-            {
-                // Cast reference type result (string) to correct type.
-                // The conversion from IL2CPP to Managed is handled by UnboxResult inside IL2CPP.InvokeMethod
-                il.Add(new CilInstruction(CilOpCodes.Castclass, returnType.ToTypeDefOrRef()));
-            }
-            else
-            {
-                // cast the object? to IntPtr
-                il.Add(new CilInstruction(CilOpCodes.Unbox_Any, module.CorLibTypeFactory.IntPtr.ToTypeDefOrRef()));
-                // call Il2CppObject.Wrap<T>() on the pointer
-                il.Add(new CilInstruction(CilOpCodes.Call, il2cppObjectWrap.ToMethodDescriptor(module)));
-            }
+            var genericInvokeMethod = new MethodSpecification(
+                (IMethodDefOrRef)module.DefaultImporter.ImportMethod(il2cppInvokeMethod.ToMethodDescriptor(module)),
+                new GenericInstanceMethodSignature(methodDef.Signature!.ReturnType)
+            );
+
+            il.Add(new CilInstruction(CilOpCodes.Call, genericInvokeMethod));
         }
+        // T result is now on the stack
 
         il.Add(new CilInstruction(CilOpCodes.Ret));
         il.OptimizeMacros();

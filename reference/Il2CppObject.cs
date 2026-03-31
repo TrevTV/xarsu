@@ -65,6 +65,12 @@ public class Il2CppObject
     public override bool Equals(object? obj)
         => obj is Il2CppObject other && other.Pointer == Pointer;
 
+    public static bool operator ==(Il2CppObject? left, Il2CppObject? right)
+        => ReferenceEquals(left, right) || (left is not null && right is not null && left.Pointer == right.Pointer);
+
+    public static bool operator !=(Il2CppObject? left, Il2CppObject? right)
+        => !(left == right);
+
     public override int GetHashCode()
         => Pointer.GetHashCode();
 }

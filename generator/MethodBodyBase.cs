@@ -434,8 +434,7 @@ public abstract class MethodBodyBase
         if (type is PointerTypeAnalysisContext)
             return true;
 
-        //return type is GenericInstanceTypeAnalysisContext { GenericType: { Name: $"{nameof(Pointer<>)}`1" } genericType } && genericType.Namespace == typeof(Pointer<>).Namespace;
-        return false; // TODO: obviously incorrect, but Pointer<T> does not exist currently
+        return false;
     }
 
     protected static bool IsByReferenceType(TypeAnalysisContext type)
@@ -450,12 +449,7 @@ public abstract class MethodBodyBase
             elementType = byRefType.ElementType;
             return true;
         }
-        // TODO: another obviously incorrect hack, but ByReference<T> does not exist currently
-        /*if (type is GenericInstanceTypeAnalysisContext { GenericType: { Name: $"{nameof(ByReference<>)}`1" } genericType } && genericType.Namespace == typeof(ByReference<>).Namespace)
-        {
-            elementType = ((GenericInstanceTypeAnalysisContext)type).GenericArguments[0];
-            return true;
-        }*/
+
         elementType = null;
         return false;
     }
@@ -472,12 +466,7 @@ public abstract class MethodBodyBase
             elementType = szArrayType.ElementType;
             return true;
         }
-        // TODO: another obviously incorrect hack, but Il2CppArrayRank1<T> does not exist currently
-        /*if (type is GenericInstanceTypeAnalysisContext { GenericType: { Name: $"{nameof(Il2CppArrayRank1<>)}`1" } genericType } && genericType.Namespace == typeof(Il2CppArrayRank1<>).Namespace)
-        {
-            elementType = ((GenericInstanceTypeAnalysisContext)type).GenericArguments[0];
-            return true;
-        }*/
+
         elementType = null;
         return false;
     }

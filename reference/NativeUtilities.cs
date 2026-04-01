@@ -4,6 +4,13 @@ namespace xarsu.Reference;
 
 public static unsafe class NativeUtilities
 {
+    public static T? ReadValueAtIndex<T>(IntPtr ptr, int idx)
+    {
+        int size = GetSizeOf<T>();
+        int offset = idx * size;
+        return ReadValueAtOffset<T>(ptr, offset);
+    }
+
     public static T? ReadValueAtOffset<T>(IntPtr ptr, int offset)
     {
         if (typeof(T) == typeof(string))
@@ -30,6 +37,13 @@ public static unsafe class NativeUtilities
 #pragma warning restore CS8500
     }
 
+    public static void WriteValueAtIndex<T>(IntPtr ptr, int idx, T value)
+    {
+        int size = GetSizeOf<T>();
+        int offset = idx * size;
+        WriteValueAtOffset(ptr, offset, value);
+    }
+
     public static void WriteValueAtOffset<T>(IntPtr ptr, int offset, T value)
     {
         if (value is string str)
@@ -53,6 +67,15 @@ public static unsafe class NativeUtilities
             *(T*)IntPtr.Add(ptr, offset) = value;
 #pragma warning restore CS8500
         }
+    }
+
+    public static int GetSizeOf<T>()
+    {
+        if (typeof(T) == typeof(string) || typeof(Il2CppObject).IsAssignableFrom(typeof(T)))
+            return sizeof(IntPtr);
+        if (typeof(T).IsAssignableFrom(typeof(IIl2CppStruct)))
+            return ((IIl2CppStruct)default(T)!).GetSize();
+        return Marshal.SizeOf<T>();
     }
 
     public static void* CopyToUnmanaged<T>(T value) where T : unmanaged

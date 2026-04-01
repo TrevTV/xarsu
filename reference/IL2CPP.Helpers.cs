@@ -346,7 +346,7 @@ public static unsafe partial class IL2CPP
                 return (void*)ManagedStringToIl2Cpp(str);
 
             case Il2CppObject il2cppObj:
-                return (void*)il2cppObj.Box();
+                return (void*)il2cppObj.Pointer;
 
             case IIl2CppStruct il2cppStruct:
                 return (void*)il2cppStruct.WriteToNative();

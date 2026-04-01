@@ -80,7 +80,6 @@ internal class ArrayRemappingProcessingLayer : Cpp2IlProcessingLayer
     private bool TryReplaceArrayType(ApplicationAnalysisContext appContext, TypeAnalysisContext type, out TypeAnalysisContext? newType)
     {
         var il2ArrayType = appContext.ResolveTypeOrThrow(typeof(xarsu.Reference.Il2CppArray<>));
-        var il2ValueArrayType = appContext.ResolveTypeOrThrow(typeof(xarsu.Reference.Il2CppValueArray<>));
 
         if (type is ArrayTypeAnalysisContext arrayType)
         {
@@ -90,16 +89,8 @@ internal class ArrayRemappingProcessingLayer : Cpp2IlProcessingLayer
         if (type is SzArrayTypeAnalysisContext szArrayType)
         {
             var realType = szArrayType.ElementType;
-            if (realType.IsValueType)
-            {
-                var genericArrayType = il2ValueArrayType.MakeGenericInstanceType(realType);
-                newType = genericArrayType;
-            }
-            else
-            {
-                var genericArrayType = il2ArrayType.MakeGenericInstanceType(realType);
-                newType = genericArrayType;
-            }
+            var genericArrayType = il2ArrayType.MakeGenericInstanceType(realType);
+            newType = genericArrayType;
 
             return true;
         }

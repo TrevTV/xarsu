@@ -4,6 +4,7 @@ namespace xarsu.Reference;
 
 public interface IIl2CppStruct
 {
+    int GetSize();
     IntPtr WriteToNative();
     IIl2CppStruct ReadFromNative(IntPtr ptr);
 }
@@ -13,6 +14,8 @@ public interface IIl2CppStruct<T> : IIl2CppStruct where T : unmanaged, IIl2CppSt
     static abstract int Size { get; }
     static abstract T Read(IntPtr ptr);
     static abstract void Write(T instance, IntPtr ptr);
+
+    int IIl2CppStruct.GetSize() => T.Size;
 
     IntPtr IIl2CppStruct.WriteToNative()
     {

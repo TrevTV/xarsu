@@ -21,6 +21,7 @@ public class ReferenceAssemblyInjectionProcessingLayer : Cpp2IlProcessingLayer
             typeof(xarsu.Reference.OriginalNameAttribute),
             typeof(xarsu.Reference.OriginalTypeNameAttribute),
             typeof(xarsu.Reference.NativeUtilities),
+            typeof(xarsu.Reference.IIl2CppStruct),
             typeof(xarsu.Reference.IIl2CppStruct<>),
         ];
         InjectTypes(appContext, typeof(xarsu.Reference.IL2CPP).Assembly, xarsuTypes);

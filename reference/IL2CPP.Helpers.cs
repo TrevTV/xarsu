@@ -282,6 +282,11 @@ public static unsafe partial class IL2CPP
             il2cpp_field_set_value(instance, fieldPtr, rawValue);
     }
 
+    public static void ReadStructToRef<T>(IntPtr ptr, ref T instance) where T : unmanaged, IIl2CppStruct<T>
+    {
+        T.ReadTo(ptr, ref instance);
+    }
+
     // =========================================================================
     // Internal helpers
     // =========================================================================

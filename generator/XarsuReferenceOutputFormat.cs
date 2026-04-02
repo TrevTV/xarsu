@@ -9,8 +9,16 @@ using Cpp2IL.Core.OutputFormats;
 using Cpp2IL.Core.Utils;
 using Cpp2IL.Core.Utils.AsmResolver;
 using xarsu.Generator.Extensions;
+using xarsu.Reference;
 
 namespace xarsu.Generator;
+
+// TODO: unsupported things
+// - ref/out/in parameters (the InvokeMethod object[] approach doesn't support them, would need to be handled specially)
+// - methods in a generic type using the type's parameters; needs a generated rd.xml to forcefully create the necessary generic method instantiations
+
+// TODO: partially supported things
+// - struct arrays (has problems with reference types)
 
 internal class XarsuReferenceOutputFormat : AsmResolverDllOutputFormatThrowNull
 {
@@ -52,6 +60,7 @@ internal class XarsuReferenceOutputFormat : AsmResolverDllOutputFormatThrowNull
         var il2cppMakeGenericMethod = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.MakeGenericMethod));
         var il2cppInvokeMethod = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.InvokeMethod));
         var il2cppInvokeVoidMethod = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.InvokeVoidMethod));
+        var il2cppReadStructToRefMethod = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.ReadStructToRef));
 
         var xarsuIl2CppObjectClass = appContext.ResolveTypeOrThrow(typeof(xarsu.Reference.Il2CppObject));
         var il2cppObjectGetPointer = xarsuIl2CppObjectClass.GetPropertyByName(nameof(xarsu.Reference.Il2CppObject.Pointer)).Getter!;
@@ -61,6 +70,9 @@ internal class XarsuReferenceOutputFormat : AsmResolverDllOutputFormatThrowNull
         var objPointerExplicitFromIntPtr = xarsuObjectPointerClass.GetExplicitConversionFrom(appContext.SystemTypes.SystemIntPtrType);
         var objPointerExplicitIntPtr = xarsuObjectPointerClass.GetExplicitConversionTo(appContext.SystemTypes.SystemIntPtrType);
 
+        var xarsuStructClass = appContext.ResolveTypeOrThrow(typeof(xarsu.Reference.IIl2CppStruct));
+        var structWriteToNative = xarsuStructClass.GetMethodByName(nameof(xarsu.Reference.IIl2CppStruct.WriteToNative));
+
         var systemTypeType = appContext.SystemTypes.SystemTypeType;
         var systemTypeGetFromHandle = systemTypeType.GetMethodByName("GetTypeFromHandle");
 
@@ -68,15 +80,24 @@ internal class XarsuReferenceOutputFormat : AsmResolverDllOutputFormatThrowNull
         methodDef.CilMethodBody = new CilMethodBody();
         var il = methodDef.CilMethodBody.Instructions;
 
+        var declaringType = methodDef.DeclaringType!;
+
         bool isStatic = methodDef.IsStatic;
         bool isVoid = methodDef.Signature?.ReturnType is CorLibTypeSignature { ElementType: ElementType.Void };
         bool isCtor = methodDef.IsConstructor && !isStatic;
+        bool isStruct = declaringType.IsValueType && declaringType.Interfaces.Any(i => i.Interface!.Name!.Contains(nameof(IIl2CppStruct)));
+
+        // check for any in/out/ref parameters, which aren't supported by the InvokeMethod approach and would require special handling
+        if (methodCtx.Parameters.Any(p => p.IsRef || p.Attributes.HasFlag(System.Reflection.ParameterAttributes.In)))
+        {
+            EmitNotSupported(il, module,
+                $"Method {methodDef.DeclaringType?.FullName}.{methodDef.Name} is not supported because it has ref or in parameters, which cannot be handled in this output format.");
+            return;
+        }
 
         // ----- 1. Resolve the method pointer -----
         // IL2CPP.GetIl2CppClass(assembly, ns, className) -> IntPtr klass
         // IL2CPP.GetIl2CppMethod(klass, isGeneric, name, returnType, params string[] argTypes) -> IntPtr method
-
-        var declaringType = methodDef.DeclaringType!;
 
         // compute the data we need for the GetIl2CppMethod call
         string assemblyName = MiscUtils.CleanPathElement(methodCtx.DeclaringType!.DeclaringAssembly.DefaultName) + ".dll";
@@ -158,16 +179,31 @@ internal class XarsuReferenceOutputFormat : AsmResolverDllOutputFormatThrowNull
         // methodPtr already on stack, store in local so we can reuse.
         var localMethod = new CilLocalVariable(module.CorLibTypeFactory.IntPtr);
         methodDef.CilMethodBody.LocalVariables.Add(localMethod);
+
         il.Add(new CilInstruction(CilOpCodes.Stloc, localMethod));
 
         // push back the method pointer for the call
         il.Add(new CilInstruction(CilOpCodes.Ldloc, localMethod));
+
+        CilLocalVariable selfPointer = new(module.CorLibTypeFactory.IntPtr);
 
         if (isStatic)
         {
             // IntPtr.Zero
             il.Add(new CilInstruction(CilOpCodes.Ldc_I4_0));
             il.Add(new CilInstruction(CilOpCodes.Conv_I));
+        }
+        else if (isStruct)
+        {
+            methodDef.CilMethodBody.LocalVariables.Add(selfPointer);
+
+            // this.WriteToNative()
+            il.Add(new CilInstruction(CilOpCodes.Ldarg_0));
+            il.Add(new CilInstruction(CilOpCodes.Ldobj, declaringType.ToTypeSignature().ToTypeDefOrRef())); // load struct value
+            il.Add(new CilInstruction(CilOpCodes.Box, declaringType.ToTypeSignature().ToTypeDefOrRef()));   // box it
+            il.Add(new CilInstruction(CilOpCodes.Callvirt, structWriteToNative.ToMethodDescriptor(module)));
+            il.Add(new CilInstruction(CilOpCodes.Dup)); // duplicate the pointer for storing and pushing to arg
+            il.Add(new CilInstruction(CilOpCodes.Stloc, selfPointer)); // store the instance pointer in a local for reuse
         }
         else
         {
@@ -191,8 +227,7 @@ internal class XarsuReferenceOutputFormat : AsmResolverDllOutputFormatThrowNull
             il.Add(new CilInstruction(CilOpCodes.Dup));
             il.Add(new CilInstruction(CilOpCodes.Ldc_I4, i));
             il.Add(new CilInstruction(CilOpCodes.Ldarg, param));
-            // Box value types so they fit in object[].
-            if (param.ParameterType is not null && IsValueOrPrimitive(param.ParameterType))
+            if (param.ParameterType is not null && (param.ParameterType is GenericParameterSignature || IsValueOrPrimitive(param.ParameterType)))
                 il.Add(new CilInstruction(CilOpCodes.Box, param.ParameterType.ToTypeDefOrRef()));
             il.Add(new CilInstruction(CilOpCodes.Stelem_Ref));
         }
@@ -211,6 +246,20 @@ internal class XarsuReferenceOutputFormat : AsmResolverDllOutputFormatThrowNull
             il.Add(new CilInstruction(CilOpCodes.Call, genericInvokeMethod));
         }
         // T result is now on the stack
+
+        // handle potential struct modifications from their own methods by reading back the struct data into the instance
+        if (isStruct && !isStatic)
+        {
+            // IL2CPP.ReadStructToRef(selfPtr, ref this)
+            var genericReadStructToRef = new MethodSpecification(
+                (IMethodDefOrRef)module.DefaultImporter.ImportMethod(il2cppReadStructToRefMethod.ToMethodDescriptor(module)),
+                new GenericInstanceMethodSignature(methodDef.DeclaringType!.ToTypeSignature())
+            );
+
+            il.Add(new CilInstruction(CilOpCodes.Ldloc, selfPointer));
+            il.Add(new CilInstruction(CilOpCodes.Ldarg_0));
+            il.Add(new CilInstruction(CilOpCodes.Call, genericReadStructToRef));
+        }
 
         il.Add(new CilInstruction(CilOpCodes.Ret));
         il.OptimizeMacros();

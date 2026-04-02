@@ -6,6 +6,7 @@ public interface IIl2CppStruct
 {
     int GetSize();
     IntPtr WriteToNative();
+    void WriteToNativePointer(IntPtr ptr);
     IIl2CppStruct ReadFromNative(IntPtr ptr);
 }
 
@@ -13,6 +14,7 @@ public interface IIl2CppStruct<T> : IIl2CppStruct where T : unmanaged, IIl2CppSt
 {
     static abstract int Size { get; }
     static abstract T Read(IntPtr ptr);
+    static abstract void ReadTo(IntPtr ptr, ref T instance);
     static abstract void Write(T instance, IntPtr ptr);
 
     int IIl2CppStruct.GetSize() => T.Size;
@@ -22,6 +24,11 @@ public interface IIl2CppStruct<T> : IIl2CppStruct where T : unmanaged, IIl2CppSt
         var ptr = Marshal.AllocHGlobal(T.Size);
         T.Write((T)(object)this, ptr);
         return ptr;
+    }
+
+    void IIl2CppStruct.WriteToNativePointer(nint ptr)
+    {
+        T.Write((T)(object)this, ptr);
     }
 
     IIl2CppStruct IIl2CppStruct.ReadFromNative(nint ptr)

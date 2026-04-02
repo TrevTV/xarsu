@@ -68,7 +68,11 @@ internal class StructInterfaceInjectorProcessingLayer : Cpp2IlProcessingLayer
             // read method
             var readMethod = GenerateReadMethod(type, xarsuIl2CppStructGeneric, xarsuIl2CppStruct, assemblyName, namespaceName, className);
             type.Methods.Add(readMethod);
-            
+
+            // readto method
+            var readToMethod = GenerateReadToMethod(type, xarsuIl2CppStructGeneric, xarsuIl2CppStruct, assemblyName, namespaceName, className);
+            type.Methods.Add(readToMethod);
+
             // write method
             var writeMethod = GenerateWriteMethod(type, xarsuIl2CppStructGeneric, xarsuIl2CppStruct, assemblyName, namespaceName, className);
             type.Methods.Add(writeMethod);
@@ -118,6 +122,59 @@ internal class StructInterfaceInjectorProcessingLayer : Cpp2IlProcessingLayer
             LocalVariables = [
                 variable
             ]
+        });
+
+        return method;
+    }
+
+    private InjectedMethodAnalysisContext GenerateReadToMethod(TypeAnalysisContext typeContext, TypeAnalysisContext xarsuIl2CppStructGeneric, TypeAnalysisContext xarsuIl2CppStruct, string assemblyName, string namespaceName, string className)
+    {
+        var appContext = typeContext.AppContext;
+
+        var il2cppStructReadOrig = xarsuIl2CppStruct.GetMethodByName(nameof(IIl2CppStruct<>.ReadTo));
+        var il2cppStructRead = new ConcreteGenericMethodAnalysisContext(il2cppStructReadOrig, [typeContext], []);
+
+        var xarsuNativeUtilitiesClass = appContext.ResolveTypeOrThrow(typeof(NativeUtilities));
+        var readValueAtOffsetMethod = xarsuNativeUtilitiesClass.GetMethodByName(nameof(NativeUtilities.ReadValueAtOffset));
+
+        var method = new InjectedMethodAnalysisContext(
+            typeContext,
+            $"{xarsuIl2CppStructGeneric.FullName}.{nameof(IIl2CppStruct<>.ReadTo)}",
+            appContext.SystemTypes.SystemVoidType,
+            MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.Static | MethodAttributes.SpecialName,
+            [appContext.SystemTypes.SystemIntPtrType, typeContext.MakeByReferenceType()],
+            ["ptr", "instance"],
+            [ParameterAttributes.None, ParameterAttributes.None]);
+        method.IsInjected = true;
+        method.Overrides.Add(il2cppStructRead);
+
+        LocalVariable result = new(typeContext);
+
+        List<Instruction> instructions = [
+        ];
+
+        foreach (var field in typeContext.Fields)
+        {
+            var readValueAtOffsetGeneric = readValueAtOffsetMethod.MakeGenericInstanceMethod(field.FieldType);
+            
+            instructions.AddRange([
+                // instance.field = ReadValueAtOffset(ptr, offset)
+                new(CilOpCodes.Ldarg_1),
+                new(CilOpCodes.Ldarg_0),              // ptr
+                new(CilOpCodes.Ldc_I4, field.Offset), // offset
+                new(CilOpCodes.Call, readValueAtOffsetGeneric),
+                new(CilOpCodes.Stfld, field),
+            ]);
+        }
+
+        instructions.AddRange([
+            new(CilOpCodes.Ret)
+        ]);
+
+        method.PutExtraData(new TranslatedMethodBody()
+        {
+            Instructions = instructions,
+            LocalVariables = [result]
         });
 
         return method;

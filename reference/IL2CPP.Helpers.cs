@@ -186,6 +186,27 @@ public static unsafe partial class IL2CPP
         return IntPtr.Zero;
     }
 
+    public static IntPtr GetIl2CppMethodByMethodInfo(MethodInfo? info)
+    {
+        if (info == null)
+            return IntPtr.Zero;
+
+        IntPtr clazz = GetIl2CppClassFromType(info.DeclaringType!);
+        MethodTokenAttribute? tokenAttrib = info.GetCustomAttribute<MethodTokenAttribute>();
+        if (tokenAttrib != null)
+        {
+            IntPtr method = GetIl2CppMethodByToken(clazz, (int)tokenAttrib.Token);
+            if (method != IntPtr.Zero)
+                return method;
+        }
+
+        throw new InvalidOperationException("The provided MethodInfo does not exist in IL2CPP.");
+    }
+
+    public static IntPtr GetIl2CppMethodPointer(IntPtr methodInfo) => *(IntPtr*)methodInfo;
+
+    public static IntPtr GetIl2CppMethodPointer(MethodInfo? info) => GetIl2CppMethodPointer(GetIl2CppMethodByMethodInfo(info));
+
     public static IntPtr GetIl2CppField(IntPtr clazz, string fieldName)
     {
         var key = $"{clazz}|{fieldName}";

@@ -1,5 +1,5 @@
 ﻿using System.Runtime.InteropServices;
-using xarsu.Utils;
+using xarsu.Reference;
 
 namespace xarsu.Hooks;
 

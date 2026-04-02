@@ -47,6 +47,7 @@ rootCommand.SetAction(res =>
             new FieldAccessorProcessingLayer(),
             new StructInterfaceInjectorProcessingLayer(),
             new OriginalNameInjectorProcessingLayer(),
+            new MethodTokenInjectionProcessingLayer(),
         ],
         [new("corlib", corlibPath.FullName)]);
 });

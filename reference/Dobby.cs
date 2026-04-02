@@ -1,7 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace xarsu.Utils;
+namespace xarsu.Reference;
 
 internal static partial class Dobby
 {

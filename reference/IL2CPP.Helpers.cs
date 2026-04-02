@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -8,6 +9,10 @@ namespace xarsu.Reference;
 
 public static unsafe partial class IL2CPP
 {
+    private static readonly ConcurrentDictionary<string, IntPtr> _classCache = new();
+    private static readonly ConcurrentDictionary<string, IntPtr> _methodCache = new();
+    private static readonly ConcurrentDictionary<string, IntPtr> _fieldCache = new();
+
     [GeneratedRegex("\\`\\d+")]
     private static partial Regex GenericMatch();
 
@@ -43,11 +48,17 @@ public static unsafe partial class IL2CPP
 
     public static IntPtr GetIl2CppClass(string assemblyName, string namespaze, string className)
     {
+        var key = $"{assemblyName}|{namespaze}|{className}";
+        if (_classCache.TryGetValue(key, out var cached))
+            return cached;
+
         if (!_imageMap.TryGetValue(assemblyName, out var image))
             throw new KeyNotFoundException($"Assembly '{assemblyName}' not found");
         var klass = il2cpp_class_from_name(image, namespaze, className);
         if (klass == IntPtr.Zero)
             throw new KeyNotFoundException($"Class '{namespaze}.{className}' not found in assembly '{assemblyName}'");
+
+        _classCache[key] = klass;
         return klass;
     }
 
@@ -56,14 +67,16 @@ public static unsafe partial class IL2CPP
         if (clazz == IntPtr.Zero)
             throw new ArgumentNullException(nameof(clazz));
 
-        // TODO: cache methods
-
         returnTypeName = GenericMatch().Replace(returnTypeName, "").Replace('/', '.').Replace('+', '.');
         for (var index = 0; index < argTypes.Length; index++)
         {
             var argType = argTypes[index];
             argTypes[index] = GenericMatch().Replace(argType, "").Replace('/', '.').Replace('+', '.');
         }
+
+        var key = $"{clazz}|{isGeneric}|{methodName}|{returnTypeName}|{string.Join(",", argTypes)}";
+        if (_methodCache.TryGetValue(key, out var cached))
+            return cached;
 
         var methodsSeen = 0;
         var lastMethod = IntPtr.Zero;
@@ -102,6 +115,7 @@ public static unsafe partial class IL2CPP
 
             if (badType) continue;
 
+            _methodCache[key] = method; // only exact matches
             return method;
         }
 
@@ -154,6 +168,10 @@ public static unsafe partial class IL2CPP
 
     public static IntPtr GetIl2CppMethodByToken(IntPtr clazz, int token)
     {
+        var key = $"{clazz}|{token}";
+        if (_methodCache.TryGetValue(key, out var cached))
+            return cached;
+
         var iter = IntPtr.Zero;
         IntPtr method;
         while ((method = il2cpp_class_get_methods(clazz, ref iter)) != IntPtr.Zero)
@@ -161,6 +179,7 @@ public static unsafe partial class IL2CPP
             if (il2cpp_method_get_token(method) != token)
                 continue;
 
+            _methodCache[key] = method;
             return method;
         }
 
@@ -169,12 +188,19 @@ public static unsafe partial class IL2CPP
 
     public static IntPtr GetIl2CppField(IntPtr clazz, string fieldName)
     {
+        var key = $"{clazz}|{fieldName}";
+        if (_fieldCache.TryGetValue(key, out var cached))
+            return cached;
+
         IntPtr iter = IntPtr.Zero;
         IntPtr field;
         while ((field = il2cpp_class_get_fields(clazz, ref iter)) != IntPtr.Zero)
         {
             if (il2cpp_field_get_name(field) == fieldName)
+            {
+                _fieldCache[key] = field;
                 return field;
+            }
         }
         throw new KeyNotFoundException($"Field '{fieldName}' not found in class '{il2cpp_class_get_name(clazz)}'");
     }

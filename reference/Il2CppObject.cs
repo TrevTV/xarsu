@@ -42,8 +42,11 @@ public class Il2CppObject
         }
     }
 
-    public static T Wrap<T>(IntPtr ptr) where T : Il2CppObject
+    public static T? Wrap<T>(IntPtr ptr) where T : Il2CppObject
     {
+        if (ptr == IntPtr.Zero)
+            return null;
+
         var obj = (T)RuntimeHelpers.GetUninitializedObject(typeof(T));
         obj.Initialize(ptr);
         return obj;
@@ -53,6 +56,9 @@ public class Il2CppObject
     {
         if (!typeof(Il2CppObject).IsAssignableFrom(type))
             throw new ArgumentException($"Type {type.FullName} must derive from Il2CppObject.", nameof(type));
+
+        if (ptr == IntPtr.Zero)
+            return null;
 
         var obj = RuntimeHelpers.GetUninitializedObject(type) as Il2CppObject;
         obj?.Initialize(ptr);

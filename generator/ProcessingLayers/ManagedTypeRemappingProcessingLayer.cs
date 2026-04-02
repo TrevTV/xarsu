@@ -26,7 +26,8 @@ internal class ManagedTypeRemappingProcessingLayer : Cpp2IlProcessingLayer
         { "Il2CppSystem.Boolean", "System.Boolean"},
         { "Il2CppSystem.IntPtr", "System.IntPtr"},
         { "Il2CppSystem.UIntPtr", "System.UIntPtr"},
-        { "Il2CppSystem.String", "System.String" }
+        { "Il2CppSystem.String", "System.String" },
+        { "Il2CppSystem.ValueType", "System.ValueType" },
     };
 
     private TypeReplacementVisitor _visitor;

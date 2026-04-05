@@ -15,7 +15,6 @@ namespace xarsu.Generator;
 
 // TODO: unsupported things
 // - ref/out/in parameters (the InvokeMethod object[] approach doesn't support them, would need to be handled specially)
-// - methods in a generic type using the type's parameters; needs a generated rd.xml to forcefully create the necessary generic method instantiations
 
 // TODO: partially supported things
 // - struct arrays (has problems with reference types)
@@ -56,6 +55,7 @@ internal class XarsuReferenceOutputFormat : AsmResolverDllOutputFormatThrowNull
         var xarsuIl2CppStaticClass = appContext.ResolveTypeOrThrow(typeof(xarsu.Reference.IL2CPP));
         var il2cppNewObject = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.il2cpp_object_new));
         var il2cppGetIl2CppClass = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.GetIl2CppClass));
+        var il2cppGetIl2CppGenericClass = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.GetIl2CppGenericClass));
         var il2cppGetIl2CppMethodByToken = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.GetIl2CppMethodByToken));
         var il2cppMakeGenericMethod = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.MakeGenericMethod));
         var il2cppInvokeMethod = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.InvokeMethod));
@@ -110,7 +110,36 @@ internal class XarsuReferenceOutputFormat : AsmResolverDllOutputFormatThrowNull
         il.Add(new CilInstruction(CilOpCodes.Ldstr, assemblyName));
         il.Add(new CilInstruction(CilOpCodes.Ldstr, namespaceName));
         il.Add(new CilInstruction(CilOpCodes.Ldstr, className));
-        il.Add(new CilInstruction(CilOpCodes.Call, il2cppGetIl2CppClass.ToMethodDescriptor(module)));
+
+        // if we're under a generic type, we need to get the concrete class instead
+        if (declaringType.HasGenericParameters)
+        {
+            // build the type array
+            il.Add(new CilInstruction(CilOpCodes.Ldc_I4, declaringType.GenericParameters.Count));
+            il.Add(new CilInstruction(CilOpCodes.Newarr, appContext.SystemTypes.SystemTypeType.ToTypeSignature(module).ToTypeDefOrRef()));
+
+            for (int i = 0; i < declaringType.GenericParameters.Count; i++)
+            {
+                var param = declaringType.GenericParameters[i];
+
+                // arr[i] = typeof(T)
+                il.Add(new CilInstruction(CilOpCodes.Dup));
+                il.Add(new CilInstruction(CilOpCodes.Ldc_I4, i));
+
+                // refer to the generic parameter as !!i (method generic param by index)
+                var genericParamSig = new GenericParameterSignature(GenericParameterType.Type, i);
+                var typeSpec = new TypeSpecification(genericParamSig);
+                var importedTypeSpec = module.DefaultImporter.ImportType(typeSpec);
+
+                il.Add(new CilInstruction(CilOpCodes.Ldtoken, importedTypeSpec));
+                il.Add(new CilInstruction(CilOpCodes.Call, systemTypeGetFromHandle.ToMethodDescriptor(module)));
+                il.Add(new CilInstruction(CilOpCodes.Stelem_Ref));
+            }
+
+            il.Add(new CilInstruction(CilOpCodes.Call, il2cppGetIl2CppGenericClass.ToMethodDescriptor(module)));
+        }
+        else
+            il.Add(new CilInstruction(CilOpCodes.Call, il2cppGetIl2CppClass.ToMethodDescriptor(module)));
         // class is now found on the stack
 
         if (isCtor && !declaringType.IsValueType) // ignore struct constructors, they don't call a base constructor and don't need an object allocated beforehand

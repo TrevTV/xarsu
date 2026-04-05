@@ -10,6 +10,7 @@ namespace xarsu.Reference;
 public static unsafe partial class IL2CPP
 {
     private static readonly ConcurrentDictionary<string, IntPtr> _classCache = new();
+    private static readonly ConcurrentDictionary<string, IntPtr> _genericClassCache = new();
     private static readonly ConcurrentDictionary<string, IntPtr> _methodCache = new();
     private static readonly ConcurrentDictionary<string, IntPtr> _fieldCache = new();
 
@@ -61,6 +62,54 @@ public static unsafe partial class IL2CPP
         _classCache[key] = klass;
         return klass;
     }
+
+    public static IntPtr GetIl2CppGenericClass(string assemblyName, string namespaze, string className, params Type[] genericArgumentTypes)
+    {
+        string key = BuildGenericClassKey(assemblyName, namespaze, className, genericArgumentTypes);
+        if (_genericClassCache.TryGetValue(key, out IntPtr cached))
+            return cached;
+
+        IntPtr clazz = GetIl2CppClass(assemblyName, namespaze, className);
+
+        Debug.Assert(il2cpp_class_is_generic(clazz));
+
+        IntPtr type = ResolveIl2CppType(clazz);
+
+        IntPtr systemTypeClass = GetIl2CppClass("mscorlib.dll", "System", "Type");
+
+        // build the System.Type[] argument array
+        IntPtr systemTypeArrayClass = il2cpp_array_class_get(systemTypeClass, 1);
+        Il2CppArray typeArray = Il2CppArray.New(systemTypeArrayClass, genericArgumentTypes.Length);
+        Debug.Assert(typeArray.Pointer != ObjectPointer.Null);
+
+        for (int i = 0; i < genericArgumentTypes.Length; i++)
+            typeArray[i] = ResolveIl2CppType(genericArgumentTypes[i]);
+
+        IntPtr runtimeTypeClass = il2cpp_object_get_class(type);
+        IntPtr makeGenericType = GetIl2CppMethod(runtimeTypeClass, false, "MakeGenericType", "Type", ["Type[]"]);
+        IntPtr result = InvokeWithArray(makeGenericType, type, typeArray.Pointer.Value);
+
+        // call get_TypeHandle on the returned System.Type object
+        IntPtr getTypeHandle = GetIl2CppMethod(runtimeTypeClass, false, "get_TypeHandle", "RuntimeTypeHandle", []);
+        IntPtr typeHandleObj = Il2CppInvoke(getTypeHandle, result, null);
+        Debug.Assert(typeHandleObj != IntPtr.Zero);
+
+        // RuntimeTypeHandle is a value type, so unbox it to get the struct data
+        // it contains a single IntPtr 'value' field at offset 0
+        void* typeHandleData = il2cpp_object_unbox(typeHandleObj);
+        IntPtr typePtr = *(IntPtr*)typeHandleData;
+        Debug.Assert(typePtr != IntPtr.Zero);
+
+        IntPtr resultClass = il2cpp_class_from_type(typePtr);
+        Debug.Assert(resultClass != IntPtr.Zero);
+
+        _genericClassCache[key] = resultClass;
+
+        return resultClass;
+    }
+
+    private static string BuildGenericClassKey(string assemblyName, string namespaceName, string className, Type[] genericArgs)
+    => $"{assemblyName}|{namespaceName}|{className}|{string.Join(",", genericArgs.Select(t => t.FullName))}";
 
     public static IntPtr GetIl2CppMethod(IntPtr clazz, bool isGeneric, string methodName, string returnTypeName, params string[] argTypes)
     {
@@ -265,12 +314,27 @@ public static unsafe partial class IL2CPP
         return systemType;
     }
 
+    /// <summary>Resolves an IL2CPP class pointer to its IL2CPP System.Type object</summary>
+    public static IntPtr ResolveIl2CppType(IntPtr clazz)
+    {
+        IntPtr internalFromHandle = GetIl2CppMethod(GetIl2CppClass("mscorlib.dll", "System", "Type"), false, "internal_from_handle", "System.Type", ["System.IntPtr"]);
+
+        IntPtr typeHandle = il2cpp_class_get_type(clazz);
+        void* typeHandlePtr = &typeHandle;
+        IntPtr systemType = Il2CppInvoke(internalFromHandle, IntPtr.Zero, &typeHandlePtr);
+        return systemType;
+    }
+
     public static IntPtr GetIl2CppClassFromType(Type type)
     {
+        string assemblyName = type.Assembly!.GetName().Name!;
+        if (assemblyName == "System.Private.CoreLib")
+            assemblyName = "mscorlib"; // precaution for corlib types as il2cpp has them under mscorlib.dll
+
         OriginalTypeNameAttribute? attr = type.GetCustomAttribute<OriginalTypeNameAttribute>();
         return attr != null
             ? GetIl2CppClass($"{attr.AssemblyName}.dll", attr.Namespace, attr.Name)
-            : GetIl2CppClass($"{type.Assembly!.GetName().Name}.dll", type.Namespace!, type.Name);
+            : GetIl2CppClass($"{assemblyName}.dll", type.Namespace!, type.Name);
     }
 
     /// <summary>

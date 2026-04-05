@@ -47,16 +47,8 @@ public static class XarsuExports
 
     public static string GetIl2CppLibraryName() => _exports.GetIl2CppLibraryName();
 
-    private class Delegates
+    private class Delegates(IntPtr lib)
     {
-        public Delegates(IntPtr lib)
-        {
-            Log = NativeLibraryUtil.LoadFunction<LogDelegate>(lib, "XarsuLog", true);
-            LogWarning = NativeLibraryUtil.LoadFunction<LogWarningDelegate>(lib, "XarsuLogWarning", true);
-            LogError = NativeLibraryUtil.LoadFunction<LogErrorDelegate>(lib, "XarsuLogError", true);
-            LogVerbose = NativeLibraryUtil.LoadFunction<LogVerboseDelegate>(lib, "XarsuLogVerbose", true);
-            GetIl2CppLibraryName = NativeLibraryUtil.LoadFunction<GetIl2CppLibraryNameDelegate>(lib, "XarsuGetIl2CppLibraryName", true);
-        }
 
         #region Delegate Definitions
 
@@ -80,11 +72,11 @@ public static class XarsuExports
 
         #region Delegate Instances
 
-        public LogDelegate Log { get; }
-        public LogWarningDelegate LogWarning { get; }
-        public LogErrorDelegate LogError { get; }
-        public LogVerboseDelegate LogVerbose { get; }
-        public GetIl2CppLibraryNameDelegate GetIl2CppLibraryName { get; }
+        public LogDelegate Log { get; } = NativeLibraryUtil.LoadFunction<LogDelegate>(lib, "XarsuLog", true);
+        public LogWarningDelegate LogWarning { get; } = NativeLibraryUtil.LoadFunction<LogWarningDelegate>(lib, "XarsuLogWarning", true);
+        public LogErrorDelegate LogError { get; } = NativeLibraryUtil.LoadFunction<LogErrorDelegate>(lib, "XarsuLogError", true);
+        public LogVerboseDelegate LogVerbose { get; } = NativeLibraryUtil.LoadFunction<LogVerboseDelegate>(lib, "XarsuLogVerbose", true);
+        public GetIl2CppLibraryNameDelegate GetIl2CppLibraryName { get; } = NativeLibraryUtil.LoadFunction<GetIl2CppLibraryNameDelegate>(lib, "XarsuGetIl2CppLibraryName", true);
 
         #endregion
     }

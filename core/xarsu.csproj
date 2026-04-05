@@ -7,6 +7,7 @@
     <PublishAot>true</PublishAot>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DefineConstants>ANDROID</DefineConstants>
+	<TomlynIsReflectionEnabledByDefault>true</TomlynIsReflectionEnabledByDefault>
   </PropertyGroup>
 
   <Import Condition="'$(RuntimeIdentifier.StartsWith(`linux-bionic-`))' == 'true'" Project="BionicNativeAot.targets" />
@@ -20,6 +21,7 @@
 
   <ItemGroup>
     <NativeLibrary Include="Deps/$(RuntimeIdentifier)/$(LibPrefix)dobby$(LibExt)" />
+    <PackageReference Include="Tomlyn" Version="2.3.0" />
     <ProjectReference Include="..\reference\xarsu.Reference.csproj" />
   </ItemGroup>
 

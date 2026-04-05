@@ -1,5 +1,6 @@
 ﻿#if ANDROID
 using System.Runtime.InteropServices;
+using System.Text;
 using xarsu.Java;
 
 namespace xarsu.Proxy.Android;
@@ -13,6 +14,9 @@ internal partial class AndroidBootstrap : IProxyBootstrap
     public string? DataDirectory { get; }
 
     private string? _nativeLibraryDir = null;
+    private readonly List<string> _loadedLibraryNames = [];
+
+    private const string CONFIGURATION_FILE_NAME = "xarsu.toml";
 
     public static void TryInitCore()
     {
@@ -29,11 +33,61 @@ internal partial class AndroidBootstrap : IProxyBootstrap
         CacheApplicationInfo();
         DataDirectory = $"/sdcard/xarsu/{PackageName}/";
 
-        if (!EnsurePerms()) // TODO: it may be a good idea to only do this if the data folder already exists
+        if (Directory.Exists(DataDirectory) && !EnsurePerms())
         {
             Core.ProxyLogger?.LogError("Failed to ensure permissions, aborting loader initialization.");
             return;    
         }
+    }
+
+    public bool TryLoadConfiguration()
+    {
+        // first, try loading it from our data directory
+        string fsPath = Path.Combine(DataDirectory!, CONFIGURATION_FILE_NAME);
+        if (File.Exists(fsPath))
+        {
+            Core.ProxyLogger?.Log($"Configuration file found at {fsPath}, attempting to load...");
+            try
+            {
+                string configData = File.ReadAllText(fsPath);
+                Configuration.Load(configData);
+                Core.ProxyLogger?.Log("Successfully loaded configuration from data directory.");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Core.ProxyLogger?.LogError($"Failed to load configuration from data directory: {ex.Message}");
+            }
+        }
+
+        // if that fails, try loading it from the APK assets
+        Stream? assetStream = APKAssetManager.GetAssetStream(CONFIGURATION_FILE_NAME);
+        if (assetStream == null)
+        {
+            Core.ProxyLogger?.LogError("Failed to find configuration file in APK assets.");
+            return false;
+        }
+
+        Core.ProxyLogger?.Log($"Configuration file found in APK assets, attempting to load...");
+        try
+        {
+            StringBuilder sb = new();
+
+            byte[] buffer = new byte[512];
+            int bytesRead;
+            while ((bytesRead = assetStream.Read(buffer, 0, buffer.Length)) > 0)
+                sb.Append(Encoding.UTF8.GetString(buffer, 0, bytesRead));
+
+            Configuration.Load(sb.ToString());
+            Core.ProxyLogger?.Log("Successfully loaded configuration from APK assets.");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Core.ProxyLogger?.LogError($"Failed to load configuration from APK assets: {ex.Message}");
+        }
+
+        return true;
     }
 
     public bool TryLoadRawLibrary(string path, out IntPtr handle)
@@ -45,6 +99,7 @@ internal partial class AndroidBootstrap : IProxyBootstrap
     public IEnumerable<Library> LoadLibraries()
     {
         // load from data directory first
+        // we don't check with the configuration here because we are the only ones putting files there
         if (Directory.Exists(DataDirectory!))
         {
             Core.ProxyLogger?.Log($"Data directory found at {DataDirectory!}, attempting to load libraries...");
@@ -60,18 +115,26 @@ internal partial class AndroidBootstrap : IProxyBootstrap
 
                 Library? library = HandleLibraryLoad(loadPath);
                 if (library != null)
+                {
+                    _loadedLibraryNames.Add(Path.GetFileNameWithoutExtension(libraryPath));
                     yield return library;
+                }
             }
         }
 
+        if (Configuration.Current == null)
+        {
+            Core.ProxyLogger?.LogError("Configuration not loaded, cannot load APK-embedded libraries.");
+            yield break;
+        }
+
         // now check APK-embedded libraries
-        // TODO: use a toml/json to specify which libraries to load instead of just loading all of them, this is pretty hacky and will probably cause issues
         string[] embeddedLibraries = Directory.GetFiles(_nativeLibraryDir!, "*.so");
         foreach (string libraryPath in embeddedLibraries)
         {
             string fileName = Path.GetFileNameWithoutExtension(libraryPath);
-            if (fileName is "libil2cpp" or "libunity" or "libmain" or "libc++_shared" or "libdobby") // skip the obvious ones
-                continue;
+            if (_loadedLibraryNames.Contains(fileName) || !Configuration.Current!.ModLibraryNames.Contains(fileName))
+                continue; // already loaded by above (priorized) or not in config
 
             Library? library = HandleLibraryLoad(libraryPath);
             if (library != null)

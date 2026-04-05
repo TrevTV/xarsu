@@ -30,7 +30,7 @@ internal class ManagedTypeRemappingProcessingLayer : Cpp2IlProcessingLayer
         { "Il2CppSystem.ValueType", "System.ValueType" },
     };
 
-    private TypeReplacementVisitor _visitor;
+    private TypeReplacementVisitor? _visitor;
 
     public override void Process(ApplicationAnalysisContext appContext, Action<int, int>? progressCallback = null)
     {

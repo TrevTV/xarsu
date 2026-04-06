@@ -12,29 +12,29 @@ public class Il2CppHook<TDelegate> where TDelegate : Delegate
 
     public Il2CppHook(TDelegate detour) => _detour = detour;
 
-    public bool Install(IntPtr methodInfo)
+    public bool Install(IntPtr methodPtr)
     {
-        _methodPtr = IL2CPP.GetIl2CppMethodPointer(methodInfo);
+        _methodPtr = methodPtr;
         _hook = new Dobby.NativeHook<TDelegate>(_methodPtr, _detour);
         return _hook.Hook();
     }
 
     public bool Install(MethodInfo? managedMethod)
-        => Install(IL2CPP.GetIl2CppMethodByMethodInfo(managedMethod));
+        => Install(IL2CPP.GetIl2CppMethodPointer(managedMethod));
 
     public bool Uninstall() => _hook?.Unhook() ?? false;
 }
 
 public static class Il2CppHook
 {
-    public static Il2CppHook<TDelegate> Install<TDelegate>(IntPtr methodInfo, TDelegate detour)
+    public static Il2CppHook<TDelegate> Install<TDelegate>(IntPtr methodPtr, TDelegate detour)
         where TDelegate : Delegate
     {
         var hook = new Il2CppHook<TDelegate>(detour);
-        bool success = hook.Install(methodInfo);
+        bool success = hook.Install(methodPtr);
         XarsuExports.Log(success
-            ? $"Hooked 0x{methodInfo:X}"
-            : $"Failed to hook 0x{methodInfo:X}");
+            ? $"Hooked 0x{methodPtr:X}"
+            : $"Failed to hook 0x{methodPtr:X}");
         return hook;
     }
 

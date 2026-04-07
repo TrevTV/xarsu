@@ -42,8 +42,6 @@ jobs:
 
       - name: Build and Pack xarsu.Generator
         run: |
-          dotnet publish generator/ -c Release \
-            -p:PackageVersion=${{ steps.get_version.outputs.version }}
           dotnet pack generator/ -c Release \
             -p:PackageVersion=${{ steps.get_version.outputs.version }} \
             -o ./bin/NuGet

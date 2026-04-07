@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 	<PackAsTool>true</PackAsTool>
+	<ToolCommandName>xarsu.Generator</ToolCommandName>
 	<RestoreAdditionalProjectSources>
 		https://nuget.samboy.dev/v3/index.json
 	</RestoreAdditionalProjectSources>

@@ -1,7 +1,7 @@
 ﻿#if ANDROID
 using System.Runtime.InteropServices;
 using System.Text;
-using xarsu.Java;
+using xarsu.Reference.Java;
 
 namespace xarsu.Proxy.Android;
 
@@ -144,7 +144,7 @@ internal partial class AndroidBootstrap : IProxyBootstrap
         static Library? HandleLibraryLoad(string libraryPath)
         {
             Core.ProxyLogger?.Log($"Found library at {libraryPath}, attempting to load...");
-            bool result = Library.TryLoad(libraryPath, out var library);
+            bool result = Library.TryLoad(libraryPath, out var library, JNI.JavaVMPtr);
             if (!result)
             {
                 string errMsg = Marshal.PtrToStringAnsi(dlerror()) ?? "Unknown error";

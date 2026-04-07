@@ -1,7 +1,6 @@
-﻿#if ANDROID
-using System;
+﻿using System;
 
-namespace xarsu.Java;
+namespace xarsu.Reference.Java;
 
 public class JThrowableException : Exception
 {
@@ -14,4 +13,3 @@ public class JThrowableException : Exception
         this.Throwable = throwable;
     }
 }
-#endif

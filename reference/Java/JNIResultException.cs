@@ -1,7 +1,6 @@
-﻿#if ANDROID
-using System;
+﻿using System;
 
-namespace xarsu.Java;
+namespace xarsu.Reference.Java;
 
 public class JNIResultException : Exception
 {
@@ -12,4 +11,3 @@ public class JNIResultException : Exception
         this.Result = result;
     }
 }
-#endif

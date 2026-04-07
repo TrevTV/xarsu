@@ -2,7 +2,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
-using xarsu.Java;
+using xarsu.Reference.Java;
 
 namespace xarsu.Proxy.Android;
 

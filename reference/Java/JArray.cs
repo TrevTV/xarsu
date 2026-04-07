@@ -1,5 +1,4 @@
-﻿#if ANDROID
-namespace xarsu.Java;
+﻿namespace xarsu.Reference.Java;
 
 using System.Collections;
 using System.Collections.Generic;
@@ -36,4 +35,3 @@ public class JArray<T> : JObject, IEnumerable<T>
         return this.GetEnumerator();
     }
 }
-#endif

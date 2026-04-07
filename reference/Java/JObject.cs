@@ -1,7 +1,6 @@
-﻿#if ANDROID
-using System;
+﻿using System;
 
-namespace xarsu.Java;
+namespace xarsu.Reference.Java;
 
 public class JObject : IDisposable
 {
@@ -64,4 +63,3 @@ public class JObject : IDisposable
         GC.SuppressFinalize(this);
     }
 }
-#endif

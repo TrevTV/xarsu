@@ -1,10 +1,8 @@
 ﻿#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type
 #pragma warning disable CS8605 // Unboxing a possibly null value.
-#pragma warning disable CS8632 // The annotation for nullable reference types...
 #pragma warning disable CS8602 // Dereference of a possibly null reference
 
-#if ANDROID
-namespace xarsu.Java;
+namespace xarsu.Reference.Java;
 
 using System;
 using System.Collections.Generic;
@@ -36,7 +34,9 @@ public unsafe static partial class JNI
         }
     }
 
-    internal static Dictionary<string, JClass> ClassCache { get; set; } = new();
+    public static IntPtr JavaVMPtr => (IntPtr)VM;
+
+    internal static Dictionary<string, JClass> ClassCache { get; set; } = [];
 
     public static void Initialize(IntPtr vmPtr)
     {
@@ -60,7 +60,6 @@ public unsafe static partial class JNI
 #else
                 Marshal.AllocHGlobal(Marshal.SizeOf<JavaVMAttachArgs>());
 #endif
-
             try
             {
                 Marshal.StructureToPtr(args, argsPtr, false);
@@ -1449,9 +1448,7 @@ public unsafe static partial class JNI
         throw new NotImplementedException();
     }
 }
-#endif
 
 #pragma warning restore CS8600
 #pragma warning restore CS8605
-#pragma warning restore CS8632
 #pragma warning restore CS8602

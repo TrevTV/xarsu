@@ -1,5 +1,4 @@
-﻿#if ANDROID
-namespace xarsu.Java;
+﻿namespace xarsu.Reference.Java;
 
 public static partial class JNI
 {
@@ -38,4 +37,3 @@ public static partial class JNI
         InvalidArguments = -6
     }
 }
-#endif

@@ -1,13 +1,12 @@
-﻿#if ANDROID
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
-namespace xarsu.Java;
+namespace xarsu.Reference.Java;
 
 public class JClass : JObject
 {
-    private Dictionary<CacheItem, JFieldID> FieldCache { get; set; } = new();
+    private Dictionary<CacheItem, JFieldID> FieldCache { get; set; } = [];
 
-    private Dictionary<CacheItem, JMethodID> MethodCache { get; set; } = new();
+    private Dictionary<CacheItem, JMethodID> MethodCache { get; set; } = [];
 
     public JClass() : base() { }
 
@@ -151,4 +150,3 @@ public class JClass : JObject
         public string Value { get; private set; } = value;
     }
 }
-#endif

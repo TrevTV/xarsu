@@ -1,7 +1,6 @@
-﻿#if ANDROID
-using xarsu.Reference.Java;
+﻿using xarsu.Reference.Java;
 
-namespace xarsu.Proxy.Android;
+namespace xarsu.Reference.Android;
 
 public static class APKAssetManager
 {
@@ -275,4 +274,3 @@ public static class APKAssetManager
         }
     }
 }
-#endif

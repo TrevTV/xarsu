@@ -1,5 +1,4 @@
-﻿#if ANDROID
-namespace xarsu.Java;
+﻿namespace xarsu.Reference.Java;
 
 using System;
 using System.Runtime.InteropServices;
@@ -37,4 +36,3 @@ internal readonly unsafe struct JavaVM
 
     internal readonly FunctionTable* Functions;
 }
-#endif

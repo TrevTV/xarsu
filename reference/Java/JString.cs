@@ -1,5 +1,4 @@
-﻿#if ANDROID
-namespace xarsu.Java;
+﻿namespace xarsu.Reference.Java;
 
 public class JString : JObject
 {
@@ -7,4 +6,3 @@ public class JString : JObject
 
     public string GetString() => JNI.GetJStringString(this);
 }
-#endif

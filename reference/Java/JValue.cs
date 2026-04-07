@@ -1,5 +1,4 @@
-﻿#if ANDROID
-namespace xarsu.Java;
+﻿namespace xarsu.Reference.Java;
 
 using System;
 using System.Runtime.InteropServices;
@@ -155,4 +154,3 @@ public readonly struct JValue
 
     public static implicit operator JValue(JObject obj) => new JValue(obj);
 }
-#endif

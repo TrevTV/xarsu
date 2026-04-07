@@ -60,6 +60,32 @@ public class Il2CppArray<T> : Il2CppArray, IEnumerable<T>
 {
     public Il2CppArray(ObjectPointer ptr) : base(ptr) { }
 
+    public static unsafe Il2CppArray<T> FromManaged(T[] source)
+    {
+        var il2Array = New<T>(source.Length);
+
+        if (source.Length == 0)
+            return il2Array;
+
+        void* dest = (void*)(il2Array.Pointer.Value + DataOffset);
+
+        if (typeof(T).IsValueType && !typeof(T).IsGenericType)
+        {
+            int size = NativeUtilities.GetSizeOfReference<T>();
+#pragma warning disable CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
+            fixed (T* src = source)
+                Buffer.MemoryCopy(src, dest, (long)source.Length * size, (long)source.Length * size);
+#pragma warning restore CS8500
+        }
+        else
+        {
+            for (int i = 0; i < source.Length; i++)
+                NativeUtilities.WriteValueAtIndex(il2Array.Pointer.Value + DataOffset, i, source[i]);
+        }
+
+        return il2Array;
+    }
+
     public new T this[int index]
     {
         get

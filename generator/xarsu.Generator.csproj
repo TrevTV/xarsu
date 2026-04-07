@@ -6,6 +6,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 	<PackAsTool>true</PackAsTool>
+	<RestoreAdditionalProjectSources>
+		https://nuget.samboy.dev/v3/index.json
+	</RestoreAdditionalProjectSources>
   </PropertyGroup>
 
   <ItemGroup>

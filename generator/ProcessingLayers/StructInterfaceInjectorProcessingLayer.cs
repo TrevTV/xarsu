@@ -155,6 +155,9 @@ internal class StructInterfaceInjectorProcessingLayer : Cpp2IlProcessingLayer
 
         foreach (var field in typeContext.Fields)
         {
+            if (field.IsStatic || !field.Visibility.HasFlag(FieldAttributes.Public))
+                continue;
+
             var readValueAtOffsetGeneric = readValueAtOffsetMethod.MakeGenericInstanceMethod(field.FieldType);
             
             instructions.AddRange([
@@ -211,6 +214,9 @@ internal class StructInterfaceInjectorProcessingLayer : Cpp2IlProcessingLayer
 
         foreach (var field in typeContext.Fields)
         {
+            if (field.IsStatic || !field.Visibility.HasFlag(FieldAttributes.Public))
+                continue;
+
             var readValueAtOffsetGeneric = readValueAtOffsetMethod.MakeGenericInstanceMethod(field.FieldType);
             
             instructions.AddRange([
@@ -263,6 +269,9 @@ internal class StructInterfaceInjectorProcessingLayer : Cpp2IlProcessingLayer
 
         foreach (var field in typeContext.Fields)
         {
+            if (field.IsStatic || !field.Visibility.HasFlag(FieldAttributes.Public))
+                continue;
+
             var writeValueAtOffsetGeneric = writeValueAtOffsetMethod.MakeGenericInstanceMethod(field.FieldType);
 
             instructions.AddRange([

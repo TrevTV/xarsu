@@ -4,6 +4,7 @@
 
         <Authors>trev</Authors>
         <Copyright>Copyright (c) 2025 trev.app</Copyright>
+		<Description>NativeAOT-based Unity mod loader for Il2CPP</Description>
 
         <LangVersion>Latest</LangVersion>
         <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>

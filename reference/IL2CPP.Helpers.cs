@@ -393,6 +393,17 @@ public static unsafe partial class IL2CPP
             il2cpp_field_set_value(instance, fieldPtr, rawValue);
     }
 
+    public static T ResolveICall<T>(string signature) where T : Delegate
+    {
+        var icallPtr = il2cpp_resolve_icall(signature);
+        if (icallPtr == IntPtr.Zero)
+        {
+            throw new Exception($"ICall '{signature}' not found");
+        }
+
+        return Marshal.GetDelegateForFunctionPointer<T>(icallPtr);
+    }
+
     public static void ReadStructToRef<T>(IntPtr ptr, ref T instance) where T : unmanaged, IIl2CppStruct<T>
     {
         T.ReadTo(ptr, ref instance);

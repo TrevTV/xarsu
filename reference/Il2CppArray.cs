@@ -19,7 +19,7 @@ public unsafe class Il2CppArray : Il2CppObject, ICollection, IEnumerable
         return new Il2CppArray((ObjectPointer)ptr);
     }
 
-    public static Il2CppArray<T> New<T>(int length, int rank = 1) where T : Il2CppObject
+    public static Il2CppArray<T> New<T>(int length, int rank = 1)
     {
         IntPtr clazz = IL2CPP.GetIl2CppClassFromType(typeof(T));
         IntPtr arrayClass = IL2CPP.il2cpp_array_class_get(clazz, (uint)rank);

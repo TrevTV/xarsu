@@ -95,7 +95,7 @@ public class HookGenerator : IIncrementalGenerator
 
                 var userFacingParams = new List<string>();
                 if (!hook.IsStatic)
-                    userFacingParams.Add($"{hook.InstanceTypeName}? {hook.Parameters[0].Item2}");
+                    userFacingParams.Add($"{hook.InstanceTypeName} {hook.Parameters[0].Item2}");
                 userFacingParams.AddRange(hook.Parameters.Skip(hook.IsStatic ? 0 : 1).Select(p => $"{p.Item1} {p.Item2}"));
 
                 string userFacingParamList = string.Join(", ", userFacingParams);
@@ -140,6 +140,7 @@ public class HookGenerator : IIncrementalGenerator
                 if (!hook.IsStatic)
                 {
                     sb.AppendLine($"        var __typedInstance = __instance.AsIl2CppOrNull<{hook.InstanceTypeName}>();");
+                    sb.AppendLine($"        if (__typedInstance == null) throw new Exception(\"Failed to convert instance to {hook.InstanceTypeName}\");");
                     // build the call to the user's actual hook method
                     var callArgs = new List<string> { "__typedInstance" };
                     callArgs.AddRange(hook.Parameters.Skip(1).Select(p => p.Item2));

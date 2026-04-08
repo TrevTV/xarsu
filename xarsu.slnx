@@ -6,4 +6,5 @@
   <Project Path="generator/xarsu.Generator.csproj" />
   <Project Path="reference/xarsu.Reference.csproj" Id="8ac4c4c8-7ef9-452f-ad84-5ee8a837807d" />
   <Project Path="hookgenerator/xarsu.HookGenerator.csproj" Id="b4167092-9e6c-49c2-bc8a-e5ad0080758f" />
+  <Project Path="generator.cli/xarsu.Generator.CLI.csproj" Id="967cd201-dd29-4eca-ae60-23117c361b69" />
 </Solution>

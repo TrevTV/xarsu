@@ -3,11 +3,47 @@ using Cpp2IL.Core.Api;
 using Cpp2IL.Core.InstructionSets;
 using Cpp2IL.Core.Logging;
 using Cpp2IL.Core.Model.Contexts;
+using Cpp2IL.Core.ProcessingLayers;
+using Il2CppInterop.Generator;
 using LibCpp2IL;
+using xarsu.Generator.ProcessingLayers;
 
 namespace xarsu.Generator;
 
-internal static class Il2CppGame
+public static class XarsuIl2CppGame
+{
+    public static void Process(string binaryPath, string metadataPath, string gameDataPath, string outputFolder, KeyValuePair<string, string>[] extraData)
+    {
+        Il2CppGame.Process(binaryPath,
+            metadataPath,
+            gameDataPath,
+            outputFolder,
+            new XarsuReferenceOutputFormat(), [
+                new AttributeAnalysisProcessingLayer(),
+                new Il2CppRenamingProcessingLayer(),
+                new CleanRenamingProcessingLayer(),
+                new ConflictRenamingProcessingLayer(),
+                new MscorlibAssemblyInjectionProcessingLayer(),
+                new ReferenceAssemblyInjectionProcessingLayer(),
+                new KnownTypeAssignmentProcessingLayer(),
+                new ReferenceReplacementProcessingLayer(),
+                new AttributeRemovalProcessingLayer(),
+                new AttributesOverrideProcessingLayer(),
+                new PublicizerProcessingLayer(),
+                new PointerCtorInjectionProcessingLayer(),
+                new PrimitiveImplicitConversionProcessingLayer(),
+                new ManagedTypeRemappingProcessingLayer(),
+                new ArrayRemappingProcessingLayer(),
+                new FieldAccessorProcessingLayer(),
+                new StructInterfaceInjectorProcessingLayer(),
+                new OriginalNameInjectorProcessingLayer(),
+                new MethodTokenInjectionProcessingLayer(),
+            ],
+            extraData);
+    }
+}
+
+public static class Il2CppGame
 {
     static Il2CppGame()
     {

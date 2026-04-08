@@ -63,6 +63,28 @@ public static unsafe partial class IL2CPP
         return klass;
     }
 
+    public static IntPtr GetIl2CppNestedType(IntPtr enclosingType, string nestedTypeName)
+    {
+        if (enclosingType == IntPtr.Zero) return IntPtr.Zero;
+
+        var iter = IntPtr.Zero;
+        IntPtr nestedTypePtr;
+        if (il2cpp_class_is_inflated(enclosingType))
+        {
+            XarsuExports.LogVerbose("Original class was inflated, falling back to reflection");
+
+            // TODO: return RuntimeReflectionHelper.GetNestedTypeViaReflection(enclosingType, nestedTypeName);
+        }
+
+        while ((nestedTypePtr = il2cpp_class_get_nested_types(enclosingType, ref iter)) != IntPtr.Zero)
+            if (il2cpp_class_get_name(nestedTypePtr) == nestedTypeName)
+                return nestedTypePtr;
+
+        XarsuExports.LogError($"Nested type {nestedTypeName} on {il2cpp_class_get_name(enclosingType)} not found!");
+
+        return IntPtr.Zero;
+    }
+
     public static IntPtr GetIl2CppGenericClass(string assemblyName, string namespaze, string className, params Type[] genericArgumentTypes)
     {
         string key = BuildGenericClassKey(assemblyName, namespaze, className, genericArgumentTypes);
@@ -332,6 +354,13 @@ public static unsafe partial class IL2CPP
             assemblyName = "mscorlib"; // precaution for corlib types as il2cpp has them under mscorlib.dll
 
         OriginalTypeNameAttribute? attr = type.GetCustomAttribute<OriginalTypeNameAttribute>();
+
+        if (type.DeclaringType != null)
+        {
+            IntPtr enclosingClass = GetIl2CppClassFromType(type.DeclaringType);
+            return GetIl2CppNestedType(enclosingClass, attr?.Name ?? type.Name);
+        }
+
         return attr != null
             ? GetIl2CppClass($"{attr.AssemblyName}.dll", attr.Namespace, attr.Name)
             : GetIl2CppClass($"{assemblyName}.dll", type.Namespace!, type.Name);

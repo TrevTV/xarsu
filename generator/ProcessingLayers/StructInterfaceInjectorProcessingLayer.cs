@@ -108,6 +108,7 @@ internal class StructInterfaceInjectorProcessingLayer : Cpp2IlProcessingLayer
         method.PutExtraData(new TranslatedMethodBody()
         {
             Instructions = [
+                // TODO: nested type handling
                 // call GetIl2CppClass to get the class pointer
                 new(CilOpCodes.Ldstr, assemblyName),
                 new(CilOpCodes.Ldstr, namespaceName),

@@ -111,6 +111,7 @@ internal class XarsuReferenceOutputFormat : AsmResolverDllOutputFormatThrowNull
         il.Add(new CilInstruction(CilOpCodes.Ldstr, namespaceName));
         il.Add(new CilInstruction(CilOpCodes.Ldstr, className));
 
+        // TODO: nested type handling
         // if we're under a generic type, we need to get the concrete class instead
         if (declaringType.HasGenericParameters)
         {

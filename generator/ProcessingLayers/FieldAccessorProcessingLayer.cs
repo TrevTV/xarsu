@@ -94,6 +94,7 @@ internal class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
 
         List<Operands.Instruction> instructions =
         [
+            // TODO: nested type handling
             // call GetIl2CppClass to get the class pointer
             new(CilOpCodes.Ldstr, assemblyName),
             new(CilOpCodes.Ldstr, namespaceName),

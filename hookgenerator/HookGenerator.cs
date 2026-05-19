@@ -29,9 +29,31 @@ public class HookGenerator : IIncrementalGenerator
         if (attr.ConstructorArguments[0].Value is not INamedTypeSymbol declaringType) return null;
         string il2cppMethodName = attr.ConstructorArguments[1].Value?.ToString() ?? "";
 
-        var il2cppMethod = declaringType.GetMembers(il2cppMethodName)
-            .OfType<IMethodSymbol>()
-            .FirstOrDefault();
+
+        IMethodSymbol? il2cppMethod;
+
+        if (attr.ConstructorArguments.Length > 2 && attr.ConstructorArguments[2].Values != default)
+        {
+            // use parameter types to find the correct overload
+            il2cppMethod = declaringType.GetMembers(il2cppMethodName)
+                .OfType<IMethodSymbol>()
+                .Where(m => m.Parameters.Length == method.Parameters.Length)
+                .FirstOrDefault(m =>
+                {
+                    for (int i = 0; i < m.Parameters.Length; i++)
+                    {
+                        if (!SymbolEqualityComparer.Default.Equals(m.Parameters[i].Type, (ITypeSymbol)attr.ConstructorArguments[2].Values[i].Value!))
+                            return false;
+                    }
+                    return true;
+                });
+        }
+        else
+        {
+            il2cppMethod = declaringType.GetMembers(il2cppMethodName)
+                .OfType<IMethodSymbol>()
+                .FirstOrDefault();
+        }
 
         bool isStatic = il2cppMethod?.IsStatic ?? true;
         string? instanceTypeName = isStatic ? null : declaringType.ToDisplayString();
@@ -74,22 +96,25 @@ public class HookGenerator : IIncrementalGenerator
     // generates the expression to convert a raw param to the user-facing type
     private static string GetConvertToUserType(ITypeSymbol type, string paramName)
     {
+        if (type.SpecialType == SpecialType.System_String)
+            return $"xarsu.Reference.IL2CPP.Il2CppStringToManaged({paramName})";
+
         if (!type.IsValueType)
             return $"xarsu.Reference.Il2CppObject.Wrap<{type.ToDisplayString()}>({paramName})";
 
         if (IsPrimitive(type))
             return paramName; // no conversion needed
 
-        if (type.TypeKind == TypeKind.Enum)
+        if (type.TypeKind == TypeKind.Enum) // enums end up as structs, so this is mostly not needed as far as I know
             return $"({type.ToDisplayString()}){paramName}"; // cast from underlying int
 
         if (type.TypeKind == TypeKind.Struct)
         {
-            // check if IIl2CppStruct — use Read, otherwise treat as blittable
+            // check if IIl2CppStruct; use Read, otherwise treat as blittable
             if (ImplementsIl2CppStruct(type))
                 return $"{type.ToDisplayString()}.Read({paramName})";
             else
-                return $"*({type.ToDisplayString()}*)({paramName})"; // blittable struct
+                return $"*({type.ToDisplayString()}*)({paramName})";
         }
 
         return paramName;
@@ -98,6 +123,9 @@ public class HookGenerator : IIncrementalGenerator
     // generates the expression to convert a user-facing type back to raw
     private static string GetConvertFromUserType(ITypeSymbol type, string paramName)
     {
+        if (type.SpecialType == SpecialType.System_String)
+            return $"xarsu.Reference.IL2CPP.ManagedStringToIl2Cpp({paramName})";
+
         if (!type.IsValueType)
             return $"{paramName}?.Pointer.Value ?? System.IntPtr.Zero";
 

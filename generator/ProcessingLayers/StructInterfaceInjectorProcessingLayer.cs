@@ -38,7 +38,7 @@ internal class StructInterfaceInjectorProcessingLayer : Cpp2IlProcessingLayer
         ];
 
         // skipping primitives as they are handled special due to remapping
-        var types = appContext.AllTypes.Where(t => t.IsValueType && !t.IsEnumType && !primitiveTypes.Contains(t.FullName)).ToList();
+        var types = appContext.AllTypes.Where(t => t.IsValueType && !primitiveTypes.Contains(t.FullName)).ToList();
 
         foreach (var type in types)
         {

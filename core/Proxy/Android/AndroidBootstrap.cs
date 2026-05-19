@@ -131,7 +131,7 @@ internal partial class AndroidBootstrap : IProxyBootstrap
         // now check APK-embedded libraries
         foreach (string libraryPath in Configuration.Current!.ModLibraryNames)
         {
-            if (_loadedLibraryNames.Contains(libraryPath))
+            if (_loadedLibraryNames.Contains(Path.GetFileNameWithoutExtension(libraryPath)))
                 continue; // already loaded by above (priorized) or not in config
 
             Library? library = HandleLibraryLoad(libraryPath);

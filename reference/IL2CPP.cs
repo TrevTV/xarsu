@@ -118,10 +118,10 @@ public static unsafe partial class IL2CPP
     public static void il2cpp_gc_collect(int maxGenerations) => _exports.il2cpp_gc_collect(maxGenerations);
     public static long il2cpp_gc_get_used_size() => _exports.il2cpp_gc_get_used_size();
     public static long il2cpp_gc_get_heap_size() => _exports.il2cpp_gc_get_heap_size();
-    public static uint il2cpp_gchandle_new(IntPtr obj, bool pinned) => _exports.il2cpp_gchandle_new(obj, pinned);
-    public static uint il2cpp_gchandle_new_weakref(IntPtr obj, bool track_resurrection) => _exports.il2cpp_gchandle_new_weakref(obj, track_resurrection);
+    public static IntPtr il2cpp_gchandle_new(IntPtr obj, bool pinned) => _exports.il2cpp_gchandle_new(obj, pinned);
+    public static IntPtr il2cpp_gchandle_new_weakref(IntPtr obj, bool track_resurrection) => _exports.il2cpp_gchandle_new_weakref(obj, track_resurrection);
     public static IntPtr il2cpp_gchandle_get_target(IntPtr gchandle) => _exports.il2cpp_gchandle_get_target(gchandle);
-    public static void il2cpp_gchandle_free(uint gchandle) => _exports.il2cpp_gchandle_free(gchandle);
+    public static void il2cpp_gchandle_free(IntPtr gchandle) => _exports.il2cpp_gchandle_free(gchandle);
     public static void* il2cpp_unity_liveness_calculation_begin(IntPtr filter, int max_object_count, IntPtr callback, void* userdata, IntPtr onWorldStarted, IntPtr onWorldStopped) => _exports.il2cpp_unity_liveness_calculation_begin(filter, max_object_count, callback, userdata, onWorldStarted, onWorldStopped);
     // ⚠ Available from IL2CPP v16+ (16, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27)
     public static void il2cpp_unity_liveness_calculation_end(void* state) => _exports.il2cpp_unity_liveness_calculation_end(state);
@@ -953,11 +953,11 @@ public static unsafe partial class IL2CPP
         // IL2CPP Versions: All
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-        public delegate uint il2cpp_gchandle_new_delegate(IntPtr obj, bool pinned);
+        public delegate IntPtr il2cpp_gchandle_new_delegate(IntPtr obj, bool pinned);
         // IL2CPP Versions: All
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-        public delegate uint il2cpp_gchandle_new_weakref_delegate(IntPtr obj, bool track_resurrection);
+        public delegate IntPtr il2cpp_gchandle_new_weakref_delegate(IntPtr obj, bool track_resurrection);
         // IL2CPP Versions: All
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
@@ -965,7 +965,7 @@ public static unsafe partial class IL2CPP
         // IL2CPP Versions: All
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-        public delegate void il2cpp_gchandle_free_delegate(uint gchandle);
+        public delegate void il2cpp_gchandle_free_delegate(IntPtr gchandle);
         // IL2CPP Versions: All
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Ansi)]

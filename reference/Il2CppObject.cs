@@ -1,19 +1,62 @@
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace xarsu.Reference;
 
 public class Il2CppObject
 {
-    public ObjectPointer Pointer { get; private set; }
+    public ObjectPointer Pointer
+    {
+        get
+        {
+            if (_gcHandle == IntPtr.Zero)
+                throw new InvalidOperationException("GC handle is not initialized.");
+            var handleTarget = IL2CPP.il2cpp_gchandle_get_target(_gcHandle);
+            if (handleTarget == IntPtr.Zero)
+                throw new InvalidOperationException("GC handle target is null, object may have been collected.");
+            return new ObjectPointer(handleTarget);
+        }
+    }
+
+    public bool WasCollected
+    {
+        get
+        {
+            var handleTarget = IL2CPP.il2cpp_gchandle_get_target(_gcHandle);
+            if (handleTarget == IntPtr.Zero) return true;
+            return false;
+        }
+    }
+
+    private IntPtr _gcHandle;
 
     public Il2CppObject(ObjectPointer ptr)
     {
         if (ptr == ObjectPointer.Null)
             throw new ArgumentNullException(nameof(ptr), "Il2CppObject pointer must not be null.");
-        Pointer = ptr;
+        CreateGCHandle(ptr.Value);
     }
 
-    public void Initialize(IntPtr ptr) => Pointer = new(ptr);
+    public void InitializeIl2Cpp(IntPtr ptr)
+    {
+        CreateGCHandle(ptr);
+    }
+
+    ~Il2CppObject()
+    {
+        IL2CPP.il2cpp_gchandle_free(_gcHandle);
+    }
+
+    private void CreateGCHandle(IntPtr pointer)
+    {
+        if (Pointer == ObjectPointer.Null)
+            throw new InvalidOperationException("Cannot create GC handle for null pointer.");
+
+        if (_gcHandle != IntPtr.Zero)
+            return;
+
+        _gcHandle = IL2CPP.il2cpp_gchandle_new(pointer, false);
+    }
 
     protected static IntPtr AllocObject(string assemblyName, string namespaceName, string className)
     {
@@ -48,7 +91,7 @@ public class Il2CppObject
             return null;
 
         var obj = (T)RuntimeHelpers.GetUninitializedObject(typeof(T));
-        obj.Initialize(ptr);
+        obj.InitializeIl2Cpp(ptr);
         return obj;
     }
 
@@ -61,7 +104,7 @@ public class Il2CppObject
             return null;
 
         var obj = RuntimeHelpers.GetUninitializedObject(type) as Il2CppObject;
-        obj?.Initialize(ptr);
+        obj?.InitializeIl2Cpp(ptr);
         return obj;
     }
 

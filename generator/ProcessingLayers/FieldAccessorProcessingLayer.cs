@@ -73,11 +73,16 @@ internal class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
         var objPointerExplicitFromIntPtr = xarsuObjectPointerClass.GetExplicitConversionFrom(appContext.SystemTypes.SystemIntPtrType);
         var objPointerExplicitIntPtr = xarsuObjectPointerClass.GetExplicitConversionTo(appContext.SystemTypes.SystemIntPtrType);
 
+        MethodAttributes attributes = MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName;
+
+        if (field.Attributes.HasFlag(FieldAttributes.Static))
+            attributes |= MethodAttributes.Static;
+
         var getter = new InjectedMethodAnalysisContext(
             declaringType,
             $"get_{field.Name}",
             field.FieldType,
-            MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName,
+            attributes,
             []);
         getter.IsInjected = true;
 
@@ -145,11 +150,16 @@ internal class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
         var objPointerExplicitFromIntPtr = xarsuObjectPointerClass.GetExplicitConversionFrom(appContext.SystemTypes.SystemIntPtrType);
         var objPointerExplicitIntPtr = xarsuObjectPointerClass.GetExplicitConversionTo(appContext.SystemTypes.SystemIntPtrType);
 
+        MethodAttributes attributes = MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName;
+
+        if (field.Attributes.HasFlag(FieldAttributes.Static))
+            attributes |= MethodAttributes.Static;
+
         var setter = new InjectedMethodAnalysisContext(
             declaringType,
             $"set_{field.Name}",
             appContext.SystemTypes.SystemVoidType,
-            MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName,
+            attributes,
             [field.FieldType],
             ["value"],
             [ParameterAttributes.None]);

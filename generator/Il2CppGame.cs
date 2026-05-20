@@ -36,6 +36,7 @@ public static class XarsuIl2CppGame
                 new ArrayRemappingProcessingLayer(),
                 new FieldAccessorProcessingLayer(),
                 new StructInterfaceInjectorProcessingLayer(),
+                new EnumValueProcessingLayer(),
                 new OriginalNameInjectorProcessingLayer(),
                 new MethodTokenInjectionProcessingLayer(),
             ],

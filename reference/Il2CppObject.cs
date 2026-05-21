@@ -49,7 +49,7 @@ public class Il2CppObject
 
     private void CreateGCHandle(IntPtr pointer)
     {
-        if (Pointer == ObjectPointer.Null)
+        if (pointer == IntPtr.Zero)
             throw new InvalidOperationException("Cannot create GC handle for null pointer.");
 
         if (_gcHandle != IntPtr.Zero)

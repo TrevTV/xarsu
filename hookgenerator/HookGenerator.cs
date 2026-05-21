@@ -112,7 +112,7 @@ public class HookGenerator : IIncrementalGenerator
         {
             // check if IIl2CppStruct; use Read, otherwise treat as blittable
             if (ImplementsIl2CppStruct(type))
-                return $"{type.ToDisplayString()}.Read({paramName})";
+                return $"({type.ToDisplayString()})((IIl2CppStruct)default({type.ToDisplayString()})!).ReadFromNative({paramName})";
             else
                 return $"*({type.ToDisplayString()}*)({paramName})";
         }
@@ -138,7 +138,7 @@ public class HookGenerator : IIncrementalGenerator
         if (type.TypeKind == TypeKind.Struct)
         {
             if (ImplementsIl2CppStruct(type))
-                return $"{type.ToDisplayString()}.WriteToNativeStatic({paramName})"; // returns IntPtr
+                return $"((IIl2CppStruct){paramName}).WriteToNative()"; // returns IntPtr
             else
                 return $"(System.IntPtr)(unsafe {{ System.Runtime.CompilerServices.Unsafe.AsPointer(ref {paramName}) }})";
         }

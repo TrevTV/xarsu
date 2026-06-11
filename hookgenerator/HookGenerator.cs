@@ -29,7 +29,6 @@ public class HookGenerator : IIncrementalGenerator
         if (attr.ConstructorArguments[0].Value is not INamedTypeSymbol declaringType) return null;
         string il2cppMethodName = attr.ConstructorArguments[1].Value?.ToString() ?? "";
 
-
         IMethodSymbol? il2cppMethod;
 
         if (attr.ConstructorArguments.Length > 2 && attr.ConstructorArguments[2].Values != default)
@@ -66,6 +65,7 @@ public class HookGenerator : IIncrementalGenerator
             ReturnTypeSymbol: method.ReturnType,
             Il2CppDeclaringType: declaringType.ToDisplayString(),
             Il2CppMethodName: il2cppMethodName,
+            ParameterTypeNames: il2cppMethod?.Parameters.Select(p => p.Type.ToDisplayString()).ToArray(),
             IsStatic: isStatic,
             InstanceTypeName: instanceTypeName
         );
@@ -280,8 +280,10 @@ public class HookGenerator : IIncrementalGenerator
                 sb.AppendLine();
 
                 // ----- Install -----
+                string paramTypeList = hook.ParameterTypeNames != null ? $", new Type[] {{ {string.Join(", ", hook.ParameterTypeNames.Select(n => $"typeof({n})"))} }}" : "";
+
                 sb.AppendLine($"    public static void Install_{hook.HookMethodName}() {{");
-                sb.AppendLine($"        var __method = xarsu.Reference.IL2CPP.GetIl2CppMethodPointer(typeof({hook.Il2CppDeclaringType}).GetMethod(\"{hook.Il2CppMethodName}\"));");
+                sb.AppendLine($"        var __method = xarsu.Reference.IL2CPP.GetIl2CppMethodPointer(typeof({hook.Il2CppDeclaringType}).GetMethod(\"{hook.Il2CppMethodName}\"{paramTypeList}));");
                 sb.AppendLine($"        {hookFieldName} = xarsu.Reference.Il2CppHook.Install<{delegateName}>(__method, {hook.HookMethodName}_Detour);");
                 sb.AppendLine($"    }}");
                 sb.AppendLine();
@@ -323,6 +325,7 @@ public class HookGenerator : IIncrementalGenerator
         ITypeSymbol ReturnTypeSymbol,
         string Il2CppDeclaringType,
         string Il2CppMethodName,
+        string[]? ParameterTypeNames,
         bool IsStatic,
         string? InstanceTypeName);
 }

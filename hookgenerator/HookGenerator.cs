@@ -189,7 +189,10 @@ public class HookGenerator : IIncrementalGenerator
 
             foreach (var hook in group)
             {
-                string delegateName = $"{hook!.HookMethodName}_Delegate";
+                if (!hook!.IsStatic && hook.Parameters.Length == 0)
+                    throw new System.Exception($"Hook '{hook.HookMethodName}' has no parameters but is not static. Instance hooks must have an instance parameter.");
+
+                string delegateName = $"{hook.HookMethodName}_Delegate";
                 string hookFieldName = $"{hook.HookMethodName}_Hook";
                 string trampolineName = $"{hook.HookMethodName}_Original";
 

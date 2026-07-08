@@ -73,6 +73,9 @@ internal class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
         var objPointerExplicitFromIntPtr = xarsuObjectPointerClass.GetExplicitConversionFrom(appContext.SystemTypes.SystemIntPtrType);
         var objPointerExplicitIntPtr = xarsuObjectPointerClass.GetExplicitConversionTo(appContext.SystemTypes.SystemIntPtrType);
 
+        var intPtrClass = appContext.SystemTypes.SystemIntPtrType;
+        var intPtrZeroField = intPtrClass.GetFieldByName("Zero");
+
         MethodAttributes attributes = MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName;
 
         if (field.Attributes.HasFlag(FieldAttributes.Static))
@@ -93,10 +96,6 @@ internal class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
         string fieldName = field.DefaultName ?? "";
         string fieldTypeName = GetTypeName(field.FieldType);
 
-        Operands.Instruction instanceOp = field.IsStatic
-            ? new(CilOpCodes.Ldnull) // static fields don't need an instance
-            : new(CilOpCodes.Ldarg_0); // load the instance for non-static fields
-
         List<Operands.Instruction> instructions =
         [
             // TODO: nested type handling
@@ -110,9 +109,9 @@ internal class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
             new(CilOpCodes.Call, il2cppGetIl2CppField),
         ];
 
-        // load the instance pointer (or null for static fields)
+        // load the instance pointer (or Zero for static fields)
         if (field.IsStatic)
-            instructions.Add(new(CilOpCodes.Ldnull));
+            instructions.Add(new(CilOpCodes.Ldsfld, intPtrZeroField));
         else
         {
             // Il2CppObject.Pointer (casted to IntPtr)
@@ -150,6 +149,9 @@ internal class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
         var objPointerExplicitFromIntPtr = xarsuObjectPointerClass.GetExplicitConversionFrom(appContext.SystemTypes.SystemIntPtrType);
         var objPointerExplicitIntPtr = xarsuObjectPointerClass.GetExplicitConversionTo(appContext.SystemTypes.SystemIntPtrType);
 
+        var intPtrClass = appContext.SystemTypes.SystemIntPtrType;
+        var intPtrZeroField = intPtrClass.GetFieldByName("Zero");
+
         MethodAttributes attributes = MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName;
 
         if (field.Attributes.HasFlag(FieldAttributes.Static))
@@ -173,10 +175,6 @@ internal class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
         string fieldName = field.DefaultName ?? "";
         string fieldTypeName = GetTypeName(field.FieldType);
 
-        Operands.Instruction instanceOp = field.IsStatic
-            ? new(CilOpCodes.Ldnull) // static fields don't need an instance
-            : new(CilOpCodes.Ldarg_0); // load the instance for non-static fields
-
         List<Operands.Instruction> instructions =
         [
             // call GetIl2CppClass to get the class pointer
@@ -192,7 +190,7 @@ internal class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
         // load the instance pointer (or null for static fields)
         if (field.IsStatic)
         {
-            instructions.Add(new(CilOpCodes.Ldnull));
+            instructions.Add(new(CilOpCodes.Ldsfld, intPtrZeroField));
             instructions.Add(new(CilOpCodes.Ldarg_0));
         }
         else

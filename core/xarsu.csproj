@@ -16,7 +16,7 @@
 
   <!-- linux-bionic specific settings -->
   <Import Condition="'$(RuntimeIdentifier.StartsWith(`linux-bionic-`))' == 'true'" Project="BionicNativeAot.targets" />
-  <Target Condition="'$(RuntimeIdentifier.StartsWith(`linux-bionic-`))' == 'true'" Name="RenameBinary" AfterTargets="Publish">
+  <Target Condition="'$(RuntimeIdentifier.StartsWith(`linux-bionic-`))' == 'true'" Name="RenameBinaryBionic" AfterTargets="Publish">
     <Move SourceFiles="$(PublishDir)/$(TargetName).so" DestinationFiles="$(PublishDir)/libmain.so" />
   </Target>
 
@@ -35,7 +35,7 @@
 	<DllMainUseQueueUserApc>true</DllMainUseQueueUserApc>
   </PropertyGroup>
 
-  <Target Condition="'$(RuntimeIdentifier.StartsWith(`win-`))' == 'true'" Name="RenameBinary" AfterTargets="Publish">
+  <Target Condition="'$(RuntimeIdentifier.StartsWith(`win-`))' == 'true'" Name="RenameBinaryWindows" AfterTargets="Publish">
 	  <Move SourceFiles="$(PublishDir)/$(TargetName).dll" DestinationFiles="$(PublishDir)/winhttp.dll" />
   </Target>
 

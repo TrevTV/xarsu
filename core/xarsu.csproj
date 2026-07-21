@@ -40,7 +40,7 @@
   </Target>
 
   <ItemGroup Condition="'$(RuntimeIdentifier.StartsWith(`win-`))' == 'true'">
-	<LinkerArg Include="/DEF:exports.def" />
+	<LinkerArg Include="/DEF:ExportsWindows.def" />
 	<PackageReference Include="NativeDllMain" Version="1.0.0" />
   </ItemGroup>
 	

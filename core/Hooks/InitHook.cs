@@ -43,6 +43,8 @@ internal static class InitHook
 
         Core.NotifyIl2CppReady();
 
+        InvokeHook.DoHook();
+
         return domain;
     }
 }

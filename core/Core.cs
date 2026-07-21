@@ -32,4 +32,20 @@ internal static class Core
             library.InvokeIl2CppReady();
         }
     }
+
+    public static void NotifySceneChanged(string? oldScene, string? newScene)
+    {
+        foreach (var library in LoadedLibraries)
+        {
+            library.InvokeSceneChanged(oldScene, newScene);
+        }
+    }
+
+    public static void NotifyUpdate()
+    {
+        foreach (var library in LoadedLibraries)
+        {
+            library.InvokeUpdate();
+        }
+    }
 }

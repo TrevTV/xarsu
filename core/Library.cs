@@ -29,6 +29,8 @@ internal class Library
 
     private delegate void load_func(IntPtr extraData);
     private delegate void il2cpp_ready_func();
+    private delegate void scene_changed_func(string? oldScene, string? newScene);
+    private delegate void update_func();
 
     public string Name { get; }
     public IntPtr Handle { get; }
@@ -37,6 +39,12 @@ internal class Library
 
     private readonly IntPtr _loadFuncPtr;
     private readonly IntPtr _il2cppReadyFuncPtr;
+    private readonly IntPtr _sceneChangedFuncPtr;
+    private readonly IntPtr _updateFuncPtr;
+
+    // these will be ran more frequently, so we cache them to avoid repeated Marshal.GetDelegateForFunctionPointer calls
+    private readonly scene_changed_func? _sceneChangedFunc;
+    private readonly update_func? _updateFunc;
 
     public Library(string name, IntPtr handle, IntPtr? extraData = null)
     {
@@ -49,6 +57,13 @@ internal class Library
 
         NativeLibrary.TryGetExport(handle, "load", out _loadFuncPtr);
         NativeLibrary.TryGetExport(handle, "il2cpp_ready", out _il2cppReadyFuncPtr);
+        NativeLibrary.TryGetExport(handle, "scene_changed", out _sceneChangedFuncPtr);
+        NativeLibrary.TryGetExport(handle, "update", out _updateFuncPtr);
+
+        if (_sceneChangedFuncPtr != IntPtr.Zero)
+            _sceneChangedFunc = Marshal.GetDelegateForFunctionPointer<scene_changed_func>(_sceneChangedFuncPtr);
+        if (_updateFuncPtr != IntPtr.Zero)
+            _updateFunc = Marshal.GetDelegateForFunctionPointer<update_func>(_updateFuncPtr);
     }
 
     ~Library()
@@ -73,5 +88,19 @@ internal class Library
             throw new InvalidOperationException("Library is not valid");
         var il2cppReadyFunc = Marshal.GetDelegateForFunctionPointer<il2cpp_ready_func>(_il2cppReadyFuncPtr);
         il2cppReadyFunc();
+    }
+
+    public void InvokeSceneChanged(string? oldScene, string? newScene)
+    {
+        if (!IsValid)
+            throw new InvalidOperationException("Library is not valid");
+        _sceneChangedFunc?.Invoke(oldScene, newScene);
+    }
+
+    public void InvokeUpdate()
+    {
+        if (!IsValid)
+            throw new InvalidOperationException("Library is not valid");
+        _updateFunc?.Invoke();
     }
 }

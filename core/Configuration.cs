@@ -38,7 +38,7 @@ internal class ConfigurationModel
     public required string[] ModLibraryNames { get; set; }
 
     [JsonPropertyName("windows_only")]
-    public required WindowsConfigurationModel Windows { get; set; }
+    public WindowsConfigurationModel? Windows { get; set; } = null;
 }
 
 internal class WindowsConfigurationModel

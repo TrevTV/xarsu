@@ -41,7 +41,7 @@ public static class XarsuExports
     {
         handle = IntPtr.Zero;
 
-        if (string.IsNullOrWhiteSpace(libraryName) || !File.Exists(libraryName))
+        if (string.IsNullOrWhiteSpace(libraryName))
             return false;
 
         if (NativeLibrary.TryLoad(libraryName, out IntPtr tempHandle))

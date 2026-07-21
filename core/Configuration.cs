@@ -5,6 +5,8 @@ namespace xarsu;
 
 internal static class Configuration
 {
+    public const string CONFIGURATION_FILE_NAME = "xarsu.toml";
+
     public static ConfigurationModel? Current { get; private set; }
 
     public static void Load(string data)
@@ -13,8 +15,22 @@ internal static class Configuration
         Core.ProxyLogger?.Log(data);
         Current = Tomlyn.TomlSerializer.Deserialize(data, ConfigurationContext.Default.ConfigurationModel);
     }
-}
 
+    public static void CreateAndLoadDefault(string path)
+    {
+        var defaultConfig = new ConfigurationModel
+        {
+            ModLibraryNames = [],
+            Windows = new WindowsConfigurationModel()
+            {
+                OpenConsole = true
+            }
+        };
+        string tomlData = Tomlyn.TomlSerializer.Serialize(defaultConfig, ConfigurationContext.Default.ConfigurationModel);
+        File.WriteAllText(path, tomlData);
+        Current = defaultConfig;
+    }
+}
 
 internal class ConfigurationModel
 {

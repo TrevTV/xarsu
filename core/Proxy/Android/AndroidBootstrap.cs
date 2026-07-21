@@ -16,8 +16,6 @@ internal partial class AndroidBootstrap : IProxyBootstrap
     private string? _nativeLibraryDir = null;
     private readonly List<string> _loadedLibraryNames = [];
 
-    private const string CONFIGURATION_FILE_NAME = "xarsu.toml";
-
     public static void TryInitCore()
     {
         // linux-bionic .NET logs everything to stdout/err, this allows us to see these logs in logcat with our logs
@@ -33,6 +31,12 @@ internal partial class AndroidBootstrap : IProxyBootstrap
         CacheApplicationInfo();
         DataDirectory = $"/sdcard/xarsu/{PackageName}/";
 
+        if (!TryLoadConfiguration())
+        {
+            Core.ProxyLogger?.Log("Failed to load configuration, aborting initialization.");
+            return;
+        }
+
         if (Directory.Exists(DataDirectory) && !EnsurePerms())
         {
             Core.ProxyLogger?.LogError("Failed to ensure permissions, aborting loader initialization.");
@@ -40,10 +44,10 @@ internal partial class AndroidBootstrap : IProxyBootstrap
         }
     }
 
-    public bool TryLoadConfiguration()
+    private bool TryLoadConfiguration()
     {
         // first, try loading it from our data directory
-        string fsPath = Path.Combine(DataDirectory!, CONFIGURATION_FILE_NAME);
+        string fsPath = Path.Combine(DataDirectory!, Configuration.CONFIGURATION_FILE_NAME);
         if (File.Exists(fsPath))
         {
             Core.ProxyLogger?.Log($"Configuration file found at {fsPath}, attempting to load...");
@@ -61,7 +65,7 @@ internal partial class AndroidBootstrap : IProxyBootstrap
         }
 
         // if that fails, try loading it from the APK assets
-        Stream? assetStream = APKAssetManager.GetAssetStream(CONFIGURATION_FILE_NAME);
+        Stream? assetStream = APKAssetManager.GetAssetStream(Configuration.CONFIGURATION_FILE_NAME);
         if (assetStream == null)
         {
             Core.ProxyLogger?.LogError("Failed to find configuration file in APK assets.");

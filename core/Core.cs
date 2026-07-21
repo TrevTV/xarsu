@@ -15,12 +15,6 @@ internal static class Core
         Bootstrap = bootstrap;
         ProxyLogger?.Log("Initializing core...");
 
-        if (!bootstrap.TryLoadConfiguration())
-        {
-            ProxyLogger?.Log("Failed to load configuration, aborting initialization.");
-            return;
-        }
-
         InitHook.DoHook();
 
         foreach (var library in bootstrap.LoadLibraries())

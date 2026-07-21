@@ -15,22 +15,22 @@ internal partial class AndroidLogger : IProxyLogger
             throw new Exception("Logging failed: code " + res);
     }
 
-    public void Log(object message)
+    public void Log(object? message)
     {
         LogInternal(message?.ToString() ?? "", LogPriority.INFO);
     }
 
-    public void LogWarning(object message)
+    public void LogWarning(object? message)
     {
         LogInternal(message?.ToString() ?? "", LogPriority.WARN);
     }
 
-    public void LogError(object message)
+    public void LogError(object? message)
     {
         LogInternal(message?.ToString() ?? "", LogPriority.ERROR);
     }
 
-    public void LogVerbose(object message)
+    public void LogVerbose(object? message)
     {
         LogInternal(message?.ToString() ?? "", LogPriority.VERBOSE);
     }

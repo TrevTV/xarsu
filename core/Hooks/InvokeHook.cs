@@ -28,13 +28,17 @@ internal static unsafe class InvokeHook
             _sceneGetNameInternal = Marshal.GetDelegateForFunctionPointer<SceneGetNameInternal>(getNameInternalMethod);
 
         // now find the target
-        if (!NativeLibrary.TryGetExport(il2cpp, "il2cpp_runtime_invoke", out var il2cppInitPtr))
+        if (!NativeLibrary.TryGetExport(il2cpp, "il2cpp_runtime_invoke", out var il2cppInvokePtr))
         {
             Core.ProxyLogger?.LogError("Failed to find il2cpp_runtime_invoke export");
             return;
         }
 
-        _il2cppInvokeHook = new Dobby.NativeHook<il2cpp_runtime_invoke_func>(il2cppInitPtr, Il2CppInvokeDetour);
+#if ANDROID
+        il2cppInvokePtr = ResolveInnerBranch(il2cppInvokePtr, 2);
+#endif
+
+        _il2cppInvokeHook = new Dobby.NativeHook<il2cpp_runtime_invoke_func>(il2cppInvokePtr, Il2CppInvokeDetour);
         if (_il2cppInvokeHook.Hook())
         {
             Core.ProxyLogger?.Log("Successfully hooked il2cpp_runtime_invoke");
@@ -82,5 +86,27 @@ internal static unsafe class InvokeHook
             Core.NotifyUpdate();
 
         return result;
+    }
+
+    private static unsafe nint ResolveInnerBranch(nint funcAddr, int maxDepth)
+    {
+        if (funcAddr == 0 || maxDepth <= 0) return funcAddr;
+
+        nuint addr = (nuint)funcAddr;
+        uint instruction = *(uint*)addr;
+
+        // Check for unconditional B (0b000101)
+        if ((instruction >> 26) == 0b000101)
+        {
+            uint imm26U = instruction & 0x03FFFFFF;
+            long imm26 = (int)(imm26U << 6) >> 6; // sign-extend 26-bit
+            nuint targetAddr = addr + (nuint)(imm26 << 2);
+
+            // Recursively resolve the target address
+            return ResolveInnerBranch((nint)targetAddr, maxDepth - 1);
+        }
+
+        // return the original address if no branch instruction is found
+        return funcAddr;
     }
 }

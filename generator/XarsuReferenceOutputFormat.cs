@@ -55,6 +55,7 @@ internal class XarsuReferenceOutputFormat : AsmResolverDllOutputFormatThrowNull
         var xarsuIl2CppStaticClass = appContext.ResolveTypeOrThrow(typeof(xarsu.Reference.IL2CPP));
         var il2cppNewObject = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.il2cpp_object_new));
         var il2cppGetIl2CppClass = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.GetIl2CppClass));
+        var il2cppGetNestedIl2CppClass = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.GetIl2CppNestedType));
         var il2cppGetIl2CppGenericClass = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.GetIl2CppGenericClass));
         var il2cppGetIl2CppMethodByToken = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.GetIl2CppMethodByToken));
         var il2cppMakeGenericMethod = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.MakeGenericMethod));
@@ -106,12 +107,14 @@ internal class XarsuReferenceOutputFormat : AsmResolverDllOutputFormatThrowNull
         string methodName = methodCtx.DefaultName ?? "";
         string returnTypeName = GetTypeName(methodCtx.DefaultReturnType);
         string[] paramTypeNames = [.. methodCtx.Parameters.Select(p => GetTypeName(p.DefaultParameterType))];
+        bool isNestedType = methodCtx.DeclaringType.DeclaringType != null;
+        string declaringTypeNamespace = methodCtx.DeclaringType.DeclaringType?.DefaultNamespace ?? "";
+        string declaringClassName = methodCtx.DeclaringType.DeclaringType?.DefaultName ?? "";
 
         il.Add(new CilInstruction(CilOpCodes.Ldstr, assemblyName));
-        il.Add(new CilInstruction(CilOpCodes.Ldstr, namespaceName));
-        il.Add(new CilInstruction(CilOpCodes.Ldstr, className));
+        il.Add(new CilInstruction(CilOpCodes.Ldstr, isNestedType ? declaringTypeNamespace : namespaceName));
+        il.Add(new CilInstruction(CilOpCodes.Ldstr, isNestedType ? declaringClassName : className));
 
-        // TODO: nested type handling
         // if we're under a generic type, we need to get the concrete class instead
         if (declaringType.HasGenericParameters)
         {
@@ -141,6 +144,14 @@ internal class XarsuReferenceOutputFormat : AsmResolverDllOutputFormatThrowNull
         }
         else
             il.Add(new CilInstruction(CilOpCodes.Call, il2cppGetIl2CppClass.ToMethodDescriptor(module)));
+
+        if (isNestedType)
+        {
+            // call to GetIl2CppNestedType with the parent class pointer and the nested type name
+            il.Add(new CilInstruction(CilOpCodes.Ldstr, className));
+            il.Add(new CilInstruction(CilOpCodes.Call, il2cppGetNestedIl2CppClass.ToMethodDescriptor(module)));
+        }
+
         // class is now found on the stack
 
         if (isCtor && !declaringType.IsValueType) // ignore struct constructors, they don't call a base constructor and don't need an object allocated beforehand

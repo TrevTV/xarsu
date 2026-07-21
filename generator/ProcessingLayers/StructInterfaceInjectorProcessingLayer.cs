@@ -88,11 +88,15 @@ internal class StructInterfaceInjectorProcessingLayer : Cpp2IlProcessingLayer
 
         var xarsuIl2CppStaticClass = appContext.ResolveTypeOrThrow(typeof(IL2CPP));
         var il2cppGetIl2CppClass = xarsuIl2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2CppClass));
+        var il2cppGetIl2CppNestedType = xarsuIl2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2CppNestedType));
         var il2cppGetValueSize = xarsuIl2CppStaticClass.GetMethodByName(nameof(IL2CPP.il2cpp_class_value_size));
 
         string assemblyName = MiscUtils.CleanPathElement(typeContext.DeclaringAssembly.DefaultName) + ".dll";
         string namespaceName = typeContext.DefaultNamespace ?? "";
         string className = typeContext.DefaultName ?? "";
+        bool isNestedType = typeContext.DeclaringType != null;
+        string declaringTypeNamespace = typeContext.DeclaringType?.DefaultNamespace ?? "";
+        string declaringClassName = typeContext.DeclaringType?.DefaultName ?? "";
 
         var method = new InjectedMethodAnalysisContext(
             typeContext,
@@ -105,21 +109,38 @@ internal class StructInterfaceInjectorProcessingLayer : Cpp2IlProcessingLayer
 
         LocalVariable variable = new(appContext.SystemTypes.SystemUInt32Type);
 
+        IReadOnlyList<Instruction> instructions = [
+            // call GetIl2CppClass to get the class pointer
+            new(CilOpCodes.Ldstr, assemblyName),
+            new(CilOpCodes.Ldstr, isNestedType ? declaringTypeNamespace : namespaceName),
+            new(CilOpCodes.Ldstr, isNestedType ? declaringClassName : className),
+            new(CilOpCodes.Call, il2cppGetIl2CppClass),
+        ];
+
+        if (isNestedType)
+        {
+            instructions =
+            [
+                // call GetIl2CppNestedType to get the nested type pointer
+                .. instructions,
+                new(CilOpCodes.Ldstr, className),
+                new(CilOpCodes.Call, il2cppGetIl2CppNestedType),
+            ];
+        }
+
+        instructions =
+        [
+            // call il2cpp_class_value_size to get the size
+            .. instructions,
+            new(CilOpCodes.Ldloca, variable),
+            new(CilOpCodes.Call, il2cppGetValueSize),
+            // return the size
+            new(CilOpCodes.Ret)
+        ];
+
         method.PutExtraData(new TranslatedMethodBody()
         {
-            Instructions = [
-                // TODO: nested type handling
-                // call GetIl2CppClass to get the class pointer
-                new(CilOpCodes.Ldstr, assemblyName),
-                new(CilOpCodes.Ldstr, namespaceName),
-                new(CilOpCodes.Ldstr, className),
-                new(CilOpCodes.Call, il2cppGetIl2CppClass),
-                // call il2cpp_class_value_size to get the size
-                new(CilOpCodes.Ldloca, variable),
-                new(CilOpCodes.Call, il2cppGetValueSize),
-                // return the size
-                new(CilOpCodes.Ret)
-            ],
+            Instructions = instructions,
             LocalVariables = [
                 variable
             ]

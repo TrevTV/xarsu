@@ -62,6 +62,7 @@ internal class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
 
         var xarsuIl2CppStaticClass = appContext.ResolveTypeOrThrow(typeof(xarsu.Reference.IL2CPP));
         var il2cppGetIl2CppClass = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.GetIl2CppClass));
+        var il2cppGetIl2CppNestedType = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.GetIl2CppNestedType));
         var il2cppGetIl2CppField = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.GetIl2CppField));
         var il2cppReadField = xarsuIl2CppStaticClass.GetMethodByName(nameof(xarsu.Reference.IL2CPP.ReadField)).MakeGenericInstanceMethod(field.FieldType);
 
@@ -95,19 +96,31 @@ internal class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
         string className = declaringType.DefaultName ?? "";
         string fieldName = field.DefaultName ?? "";
         string fieldTypeName = GetTypeName(field.FieldType);
+        bool isNestedType = declaringType.DeclaringType != null;
+        string declaringTypeNamespace = declaringType.DeclaringType?.DefaultNamespace ?? "";
+        string declaringTypeName = declaringType.DeclaringType?.DefaultName ?? "";
 
         List<Operands.Instruction> instructions =
         [
-            // TODO: nested type handling
             // call GetIl2CppClass to get the class pointer
             new(CilOpCodes.Ldstr, assemblyName),
-            new(CilOpCodes.Ldstr, namespaceName),
-            new(CilOpCodes.Ldstr, className),
+            new(CilOpCodes.Ldstr, isNestedType ? declaringTypeNamespace : namespaceName),
+            new(CilOpCodes.Ldstr, isNestedType ? declaringTypeName : className),
             new(CilOpCodes.Call, il2cppGetIl2CppClass),
+        ];
+
+        if (isNestedType)
+        {
+            // call GetIl2CppNestedType to get the nested type pointer
+            instructions.Add(new(CilOpCodes.Ldstr, declaringTypeName));
+            instructions.Add(new(CilOpCodes.Call, il2cppGetIl2CppNestedType));
+        }
+
+        instructions.AddRange([    
             // call GetIl2CppField to get the field pointer
             new(CilOpCodes.Ldstr, fieldName),
             new(CilOpCodes.Call, il2cppGetIl2CppField),
-        ];
+        ]);
 
         // load the instance pointer (or Zero for static fields)
         if (field.IsStatic)

@@ -11,7 +11,7 @@ internal class ManagedTypeRemappingProcessingLayer : Cpp2IlProcessingLayer
 
     public override string Id => "managed_type_remapping";
 
-    private readonly Dictionary<string, string> typeMappings = new() {
+    internal static readonly Dictionary<string, string> typeMappings = new() {
         { "Il2CppSystem.SByte", "System.SByte"},
         { "Il2CppSystem.Byte", "System.Byte"},
         { "Il2CppSystem.Int16", "System.Int16"},

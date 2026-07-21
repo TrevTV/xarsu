@@ -159,7 +159,12 @@ internal class StructInterfaceInjectorProcessingLayer : Cpp2IlProcessingLayer
             if (field.IsStatic || !field.Visibility.HasFlag(FieldAttributes.Public))
                 continue;
 
-            var readValueAtOffsetGeneric = readValueAtOffsetMethod.MakeGenericInstanceMethod(field.FieldType);
+            // HACK: this should have already been handled by the remapping layer, but it doesn't work properly as CPP2IL doesn't let you override enum underlying types
+            var type = field.FieldType;
+            if (ManagedTypeRemappingProcessingLayer.typeMappings.TryGetValue(type.FullName ?? "", out var mappedTypeName))
+                type = appContext.Mscorlib.GetTypeByFullNameOrThrow(mappedTypeName);
+
+            var readValueAtOffsetGeneric = readValueAtOffsetMethod.MakeGenericInstanceMethod(type);
             
             instructions.AddRange([
                 // instance.field = ReadValueAtOffset(ptr, offset)
@@ -218,7 +223,12 @@ internal class StructInterfaceInjectorProcessingLayer : Cpp2IlProcessingLayer
             if (field.IsStatic || !field.Visibility.HasFlag(FieldAttributes.Public))
                 continue;
 
-            var readValueAtOffsetGeneric = readValueAtOffsetMethod.MakeGenericInstanceMethod(field.FieldType);
+            // HACK: this should have already been handled by the remapping layer, but it doesn't work properly as CPP2IL doesn't let you override enum underlying types
+            var type = field.FieldType;
+            if (ManagedTypeRemappingProcessingLayer.typeMappings.TryGetValue(type.FullName ?? "", out var mappedTypeName))
+                type = appContext.Mscorlib.GetTypeByFullNameOrThrow(mappedTypeName);
+
+            var readValueAtOffsetGeneric = readValueAtOffsetMethod.MakeGenericInstanceMethod(type);
             
             instructions.AddRange([
                 // instance.field = ReadValueAtOffset(ptr, offset)
@@ -254,7 +264,6 @@ internal class StructInterfaceInjectorProcessingLayer : Cpp2IlProcessingLayer
         var xarsuNativeUtilitiesClass = appContext.ResolveTypeOrThrow(typeof(NativeUtilities));
         var writeValueAtOffsetMethod = xarsuNativeUtilitiesClass.GetMethodByName(nameof(NativeUtilities.WriteValueAtOffset));
 
-
         var method = new InjectedMethodAnalysisContext(
             typeContext,
             $"{xarsuIl2CppStructGeneric.FullName}.{nameof(IIl2CppStruct<>.Write)}",
@@ -273,13 +282,18 @@ internal class StructInterfaceInjectorProcessingLayer : Cpp2IlProcessingLayer
             if (field.IsStatic || !field.Visibility.HasFlag(FieldAttributes.Public))
                 continue;
 
-            var writeValueAtOffsetGeneric = writeValueAtOffsetMethod.MakeGenericInstanceMethod(field.FieldType);
+            // HACK: this should have already been handled by the remapping layer, but it doesn't work properly as CPP2IL doesn't let you override enum underlying types
+            var type = field.FieldType;
+            if (ManagedTypeRemappingProcessingLayer.typeMappings.TryGetValue(type.FullName ?? "", out var mappedTypeName))
+                type = appContext.Mscorlib.GetTypeByFullNameOrThrow(mappedTypeName);
+
+            var writeValueAtOffsetGeneric = writeValueAtOffsetMethod.MakeGenericInstanceMethod(type);
 
             instructions.AddRange([
                 // WriteValueAtOffset(ptr, offset, instance.field)
                 new(CilOpCodes.Ldarg_1),              // ptr
                 new(CilOpCodes.Ldc_I4, field.Offset), // offset
-                new(CilOpCodes.Ldarg_0),       
+                new(CilOpCodes.Ldarg_0),
                 new(CilOpCodes.Ldfld, field),         // value
                 new(CilOpCodes.Call, writeValueAtOffsetGeneric)
             ]);

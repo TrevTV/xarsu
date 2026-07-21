@@ -19,4 +19,13 @@
         <LibPrefix>lib</LibPrefix>
         <LibExt>.a</LibExt>
     </PropertyGroup>
+
+    <PropertyGroup Condition="'$(RuntimeIdentifier.StartsWith(`win-x64`))' == 'true'">
+        <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+        <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+        <PlatformTarget>x64</PlatformTarget>
+        <DefineConstants>$(DefineConstants);WINDOWS</DefineConstants>
+        <LibPrefix></LibPrefix>
+        <LibExt>.lib</LibExt>
+    </PropertyGroup>
 </Project>

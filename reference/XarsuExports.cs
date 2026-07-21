@@ -7,13 +7,26 @@ public static class XarsuExports
     private static readonly IntPtr _handle;
     private static readonly Delegates _exports;
 
-    private static readonly string[] _possibleLibraries = [
-        "libmain.so"
-    ];
-
     static XarsuExports()
     {
-        // TODO: kinda jank
+        string[] _possibleLibraries;
+
+        if (OperatingSystem.IsWindows())
+        {
+            string basePath = AppContext.BaseDirectory;
+            _possibleLibraries = [
+                $"{basePath}/winhttp.dll",
+                $"{basePath}/version.dll",
+                $"{basePath}/winmm.dll",
+            ];
+        }
+        else
+        {
+            _possibleLibraries = [
+                "libmain.so",
+            ];
+        }
+
         foreach (var libraryName in _possibleLibraries)
             if (IsXarsu(libraryName, out _handle))
                 break;
@@ -27,6 +40,9 @@ public static class XarsuExports
     private static bool IsXarsu(string libraryName, out IntPtr handle)
     {
         handle = IntPtr.Zero;
+
+        if (string.IsNullOrWhiteSpace(libraryName) || !File.Exists(libraryName))
+            return false;
 
         if (NativeLibrary.TryLoad(libraryName, out IntPtr tempHandle))
         {
@@ -49,7 +65,6 @@ public static class XarsuExports
 
     private class Delegates(IntPtr lib)
     {
-
         #region Delegate Definitions
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Unicode)]

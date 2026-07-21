@@ -6,18 +6,45 @@
     <Nullable>enable</Nullable>
     <PublishAot>true</PublishAot>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DefineConstants>ANDROID</DefineConstants>
 	<TomlynIsReflectionEnabledByDefault>true</TomlynIsReflectionEnabledByDefault>
   </PropertyGroup>
 
+  <!-- forces constants while designing -->
+  <PropertyGroup Condition="'$(DesignTimeBuild)' == 'true'">
+	<DefineConstants>$(DefineConstants);ANDROID;WINDOWS</DefineConstants>
+  </PropertyGroup>
+
+  <!-- linux-bionic specific settings -->
   <Import Condition="'$(RuntimeIdentifier.StartsWith(`linux-bionic-`))' == 'true'" Project="BionicNativeAot.targets" />
   <Target Condition="'$(RuntimeIdentifier.StartsWith(`linux-bionic-`))' == 'true'" Name="RenameBinary" AfterTargets="Publish">
     <Move SourceFiles="$(PublishDir)/$(TargetName).so" DestinationFiles="$(PublishDir)/libmain.so" />
   </Target>
 
+  <PropertyGroup Condition="'$(RuntimeIdentifier.StartsWith(`linux-bionic-`))' == 'true'">
+	  <DefineConstants>$(DefineConstants);ANDROID</DefineConstants>
+  </PropertyGroup>
+	
+  <!-- linux (including bionic) specific settings -->
   <PropertyGroup Condition="'$(RuntimeIdentifier.StartsWith(`linux-`))' == 'true'">
     <LinkStandardCPlusPlusLibrary>true</LinkStandardCPlusPlusLibrary>
   </PropertyGroup>
+	
+  <!-- Windows specific settings -->
+  <PropertyGroup Condition="'$(RuntimeIdentifier.StartsWith(`win-`))' == 'true'">
+	<DefineConstants>$(DefineConstants);WINDOWS</DefineConstants>
+	<DllMainUseQueueUserApc>true</DllMainUseQueueUserApc>
+  </PropertyGroup>
+
+  <Target Condition="'$(RuntimeIdentifier.StartsWith(`win-`))' == 'true'" Name="RenameBinary" AfterTargets="Publish">
+	  <Move SourceFiles="$(PublishDir)/$(TargetName).dll" DestinationFiles="$(PublishDir)/winhttp.dll" />
+  </Target>
+
+  <ItemGroup Condition="'$(RuntimeIdentifier.StartsWith(`win-`))' == 'true'">
+	<LinkerArg Include="/DEF:exports.def" />
+	<PackageReference Include="NativeDllMain" Version="1.0.0" />
+  </ItemGroup>
+	
+  <!-- universal things -->
 
   <ItemGroup>
     <NativeLibrary Include="Deps/$(RuntimeIdentifier)/$(LibPrefix)dobby$(LibExt)" />

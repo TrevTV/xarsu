@@ -36,6 +36,15 @@ internal class ConfigurationModel
 {
     [JsonPropertyName("mods")]
     public required string[] ModLibraryNames { get; set; }
+
+    [JsonPropertyName("windows_only")]
+    public required WindowsConfigurationModel Windows { get; set; }
+}
+
+internal class WindowsConfigurationModel
+{
+    [JsonPropertyName("open_console")]
+    public required bool OpenConsole { get; set; } = true;
 }
 
 [TomlSourceGenerationOptions(

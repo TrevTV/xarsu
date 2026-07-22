@@ -281,7 +281,7 @@ internal class XarsuReferenceOutputFormat : AsmResolverDllOutputFormatThrowNull
         {
             var genericInvokeMethod = new MethodSpecification(
                 (IMethodDefOrRef)module.DefaultImporter.ImportMethod(il2cppInvokeMethod.ToMethodDescriptor(module)),
-                new GenericInstanceMethodSignature(methodDef.Signature!.ReturnType)
+                new GenericInstanceMethodSignature([methodDef.Signature!.ReturnType])
             );
 
             il.Add(new CilInstruction(CilOpCodes.Call, genericInvokeMethod));
@@ -294,7 +294,7 @@ internal class XarsuReferenceOutputFormat : AsmResolverDllOutputFormatThrowNull
             // IL2CPP.ReadStructToRef(selfPtr, ref this)
             var genericReadStructToRef = new MethodSpecification(
                 (IMethodDefOrRef)module.DefaultImporter.ImportMethod(il2cppReadStructToRefMethod.ToMethodDescriptor(module)),
-                new GenericInstanceMethodSignature(methodDef.DeclaringType!.ToTypeSignature())
+                new GenericInstanceMethodSignature([methodDef.DeclaringType!.ToTypeSignature()])
             );
 
             il.Add(new CilInstruction(CilOpCodes.Ldloc, selfPointer));
@@ -311,8 +311,7 @@ internal class XarsuReferenceOutputFormat : AsmResolverDllOutputFormatThrowNull
         var notSupportedCtor = module.CorLibTypeFactory.CorLibScope
             .CreateTypeReference("System", "NotSupportedException")
             .CreateMemberReference(".ctor",
-                MethodSignature.CreateInstance(module.CorLibTypeFactory.Void,
-                    module.CorLibTypeFactory.String))
+                MethodSignature.CreateInstance(module.CorLibTypeFactory.Void, [module.CorLibTypeFactory.String]))
             .ImportWith(module.DefaultImporter);
 
         il.Add(new CilInstruction(CilOpCodes.Ldstr, message));
@@ -325,7 +324,7 @@ internal class XarsuReferenceOutputFormat : AsmResolverDllOutputFormatThrowNull
     /// </summary>
     private static bool IsValueOrPrimitive(TypeSignature sig) =>
         sig is CorLibTypeSignature { ElementType: not (ElementType.String or ElementType.Object) }
-        || sig is TypeDefOrRefSignature { Type.IsValueType: true };
+        || sig is TypeDefOrRefSignature { IsValueType: true };
 
     /// <summary>
     /// Gets a flattened il2cpp type name string matching what GetIl2CppMethod expects.

@@ -12,27 +12,31 @@ public readonly struct ContextResolver
     private readonly AssemblyAnalysisContext referencedFrom;
     private readonly TypeAnalysisContext? referencingType;
     private readonly MethodAnalysisContext? referencingMethod;
+    private readonly RuntimeContext runtimeContext;
 
-    public ContextResolver(AssemblyAnalysisContext referencedFrom)
+    public ContextResolver(AssemblyAnalysisContext referencedFrom, RuntimeContext runtimeContext)
     {
         this.referencedFrom = referencedFrom;
+        this.runtimeContext = runtimeContext;
     }
 
-    public ContextResolver(TypeAnalysisContext referencingType)
+    public ContextResolver(TypeAnalysisContext referencingType, RuntimeContext runtimeContext)
     {
         if (referencingType is ReferencedTypeAnalysisContext)
             throw new ArgumentException("Must be a simple type", nameof(referencingType));
         referencedFrom = referencingType.DeclaringAssembly;
         this.referencingType = referencingType;
+        this.runtimeContext = runtimeContext;
     }
 
-    public ContextResolver(MethodAnalysisContext referencingMethod)
+    public ContextResolver(MethodAnalysisContext referencingMethod, RuntimeContext runtimeContext)
     {
         if (referencingMethod is ConcreteGenericMethodAnalysisContext)
             throw new ArgumentException("Must be a simple method", nameof(referencingMethod));
         referencedFrom = referencingMethod.CustomAttributeAssembly;
         referencingType = referencingMethod.DeclaringType;
         this.referencingMethod = referencingMethod;
+        this.runtimeContext = runtimeContext;
     }
 
     public TypeAnalysisContext? Resolve(TypeSignature? type) => type switch
@@ -53,7 +57,7 @@ public readonly struct ContextResolver
         PinnedTypeSignature pinned => Resolve(pinned.BaseType)?.MakePinnedType(),
         CustomModifierTypeSignature customModifier => Resolve(customModifier),
         BoxedTypeSignature boxed => Resolve(boxed.BaseType)?.MakeBoxedType(),
-        SentinelTypeSignature => new SentinelTypeAnalysisContext(referencedFrom),
+        SentinelTypeSignature => new SentinelTypeAnalysisContext(referencedFrom.AppContext),
         _ => null
     };
 
@@ -73,14 +77,14 @@ public readonly struct ContextResolver
     private GenericInstanceTypeAnalysisContext? Resolve(GenericInstanceTypeSignature genericInstance)
     {
         return TryResolve(genericInstance.GenericType, out var genericType) && TryResolve(genericInstance.TypeArguments, out var genericArguments)
-            ? new GenericInstanceTypeAnalysisContext(genericType, genericArguments, referencedFrom)
+            ? new GenericInstanceTypeAnalysisContext(genericType, genericArguments)
             : null;
     }
 
     private CustomModifierTypeAnalysisContext? Resolve(CustomModifierTypeSignature customModifier)
     {
         return TryResolve(customModifier.BaseType, out var baseType) && TryResolve(customModifier.ModifierType, out var modifier)
-            ? new CustomModifierTypeAnalysisContext(baseType, modifier, customModifier.IsRequired, referencedFrom)
+            ? new CustomModifierTypeAnalysisContext(baseType, modifier, customModifier.IsRequired)
             : null;
     }
 
@@ -104,7 +108,7 @@ public readonly struct ContextResolver
 
         if (typeDefOrRef.Type is not TypeDefinition)
         {
-            typeDefOrRef = (TypeDefOrRefSignature?)typeDefOrRef.Resolve()?.ToTypeSignature() ?? typeDefOrRef;
+            typeDefOrRef = (TypeDefOrRefSignature?)typeDefOrRef.Resolve(runtimeContext)?.ToTypeSignature() ?? typeDefOrRef;
         }
 
         var assemblyName = GetName(typeDefOrRef.Scope);
@@ -132,7 +136,7 @@ public readonly struct ContextResolver
 
     public TypeAnalysisContext? Resolve(ITypeDescriptor? type)
     {
-        return Resolve(type?.ToTypeSignature());
+        return Resolve(type?.ToTypeSignature(runtimeContext));
     }
 
     public bool TryResolve(ITypeDescriptor? type, [NotNullWhen(true)] out TypeAnalysisContext? result)
@@ -169,7 +173,7 @@ public readonly struct ContextResolver
 
     public FieldAnalysisContext? Resolve(IFieldDescriptor fieldDescriptor)
     {
-        var declaringType = Resolve(fieldDescriptor.DeclaringType?.ToTypeSignature());
+        var declaringType = Resolve(fieldDescriptor.DeclaringType?.ToTypeSignature(runtimeContext));
         if (declaringType is null)
             return null;
 
@@ -223,7 +227,7 @@ public readonly struct ContextResolver
 
         Debug.Assert(nonGenericDeclaringType is not ReferencedTypeAnalysisContext);
 
-        var targetMethod = new ContextResolver(nonGenericDeclaringType).ResolveInType(methodDefOrRef);
+        var targetMethod = new ContextResolver(nonGenericDeclaringType, runtimeContext).ResolveInType(methodDefOrRef);
         if (targetMethod is null)
             return null;
 
@@ -246,7 +250,7 @@ public readonly struct ContextResolver
     public MethodAnalysisContext? Resolve(MethodDefinition methodDefinition)
     {
         // The declaring type can be resolved with nothing, but resolution for the method itself requires a context.
-        return TryResolve(methodDefinition.DeclaringType, out var declaringType) ? new ContextResolver(declaringType).ResolveInType(methodDefinition) : null;
+        return TryResolve(methodDefinition.DeclaringType, out var declaringType) ? new ContextResolver(declaringType, runtimeContext).ResolveInType(methodDefinition) : null;
     }
 
     public MethodAnalysisContext? ResolveInType(IMethodDefOrRef methodDefOrRef)
@@ -275,7 +279,7 @@ public readonly struct ContextResolver
                 continue;
 
             // We need to use a resolver for the method context to resolve potential method generic parameters correctly.
-            var methodResolver = new ContextResolver(methodContext);
+            var methodResolver = new ContextResolver(methodContext, runtimeContext);
 
             if (!methodResolver.TryResolve(methodDefOrRef.Signature.ReturnType, out var returnType) ||
                 !TypeAnalysisContextEqualityComparer.Instance.Equals(methodContext.ReturnType, returnType))

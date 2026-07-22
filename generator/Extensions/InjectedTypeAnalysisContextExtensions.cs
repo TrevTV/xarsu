@@ -20,7 +20,7 @@ internal static class InjectedTypeAnalysisContextExtensions
             var appContext = type.AppContext;
 
             type.SetDefaultBaseType(sourceType.BaseType != null
-                ? new ContextResolver(type).ResolveOrThrow(sourceType.BaseType)
+                ? new SystemTypeResolver(type).ResolveOrThrow(sourceType.BaseType)
                 : null);
 
             foreach (var fieldInfo in sourceType.GetFields())
@@ -28,7 +28,7 @@ internal static class InjectedTypeAnalysisContextExtensions
                 if (fieldInfo.DeclaringType != sourceType)
                     continue;
 
-                var resolver = new ContextResolver(type);
+                var resolver = new SystemTypeResolver(type);
 
                 type.InjectFieldContext(
                     fieldInfo.Name,
@@ -69,7 +69,7 @@ internal static class InjectedTypeAnalysisContextExtensions
 
                 methodMap.Add(method, methodContext);
 
-                var resolver = new ContextResolver(methodContext);
+                var resolver = new SystemTypeResolver(methodContext);
 
                 var returnType = method switch
                 {
@@ -96,7 +96,7 @@ internal static class InjectedTypeAnalysisContextExtensions
                 if (getMethod == null && setMethod == null)
                     continue;
 
-                var resolver = new ContextResolver(type);
+                var resolver = new SystemTypeResolver(type);
 
                 var propertyType = resolver.ResolveOrThrow(property.PropertyType);
                 type.InjectPropertyContext(
@@ -118,7 +118,7 @@ internal static class InjectedTypeAnalysisContextExtensions
                 if (addMethod == null && removeMethod == null && raiseMethod == null)
                     continue;
 
-                var resolver = new ContextResolver(type);
+                var resolver = new SystemTypeResolver(type);
                 var eventType = resolver.ResolveOrThrow(eventInfo.EventHandlerType!);
                 type.InjectEventContext(
                     eventInfo.Name,

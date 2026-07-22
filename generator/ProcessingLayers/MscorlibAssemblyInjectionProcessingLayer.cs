@@ -14,6 +14,13 @@ public class MscorlibAssemblyInjectionProcessingLayer : Cpp2IlProcessingLayer
 
     private const string MscorlibKey = "corlib";
 
+    private static readonly string[] injectedAssemblies =
+    [
+        "mscorlib",
+        "System.Collections",
+    ];
+    internal static ReadOnlySpan<string> InjectedAssemblies => injectedAssemblies;
+
     public override void Process(ApplicationAnalysisContext appContext, Action<int, int>? progressCallback = null)
     {
         var corlibPath = appContext.GetExtraData<string>(MscorlibKey);

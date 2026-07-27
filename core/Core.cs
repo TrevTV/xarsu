@@ -8,7 +8,7 @@ internal static class Core
     public static ProxyLogger? ProxyLogger { get; set; }
     public static IProxyBootstrap? Bootstrap { get; private set; }
 
-    public static List<Library> LoadedLibraries = [];
+    private readonly static List<Library> _loadedLibraries = [];
 
     public static void Init(IProxyBootstrap bootstrap)
     {
@@ -20,14 +20,14 @@ internal static class Core
         foreach (var library in bootstrap.LoadLibraries())
         {
             ProxyLogger?.Log($"Loaded library: {library.Name}");
-            LoadedLibraries.Add(library);
+            _loadedLibraries.Add(library);
             library.InvokeLoad();
         }
     }
 
     public static void NotifyIl2CppReady()
     {
-        foreach (var library in LoadedLibraries)
+        foreach (var library in _loadedLibraries)
         {
             library.InvokeIl2CppReady();
         }
@@ -35,7 +35,7 @@ internal static class Core
 
     public static void NotifySceneChanged(string? oldScene, string? newScene)
     {
-        foreach (var library in LoadedLibraries)
+        foreach (var library in _loadedLibraries)
         {
             library.InvokeSceneChanged(oldScene, newScene);
         }
@@ -43,7 +43,7 @@ internal static class Core
 
     public static void NotifyUpdate()
     {
-        foreach (var library in LoadedLibraries)
+        foreach (var library in _loadedLibraries)
         {
             library.InvokeUpdate();
         }

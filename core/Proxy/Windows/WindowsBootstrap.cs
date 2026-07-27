@@ -20,9 +20,11 @@ internal partial class WindowsBootstrap : IProxyBootstrap
     {
         DataDirectory = Path.Combine(AppContext.BaseDirectory, "xarsu");
 
+        WindowsLogger logger = new();
+
         if (!TryLoadConfiguration())
         {
-            Core.ProxyLogger?.Log("Failed to load configuration, aborting initialization.");
+            logger.Log("Failed to load configuration, aborting initialization.", ProxyLogger.LogLevel.Error);
             return;
         }
 
@@ -37,8 +39,6 @@ internal partial class WindowsBootstrap : IProxyBootstrap
             Console.OutputEncoding = Encoding.UTF8;
         }
 
-        Core.ProxyLogger = new(new WindowsLogger());
-
         if (!Directory.Exists(DataDirectory))
         {
             try
@@ -47,10 +47,12 @@ internal partial class WindowsBootstrap : IProxyBootstrap
             }
             catch (Exception ex)
             {
-                Core.ProxyLogger?.LogError($"Failed to create data directory at {DataDirectory}: {ex.Message}");
-                Core.ProxyLogger?.LogError(ex.StackTrace);
+                logger.Log($"Failed to create data directory at {DataDirectory}: {ex.Message}", ProxyLogger.LogLevel.Error);
+                logger.Log(ex.StackTrace ?? "<null stack trace>", ProxyLogger.LogLevel.Error);
             }
         }
+
+        Core.ProxyLogger = new ProxyLogger(logger, DataDirectory!);
     }
 
     private bool TryLoadConfiguration()

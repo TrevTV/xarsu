@@ -1,9 +1,6 @@
 ﻿namespace xarsu.Proxy;
 
-internal interface IProxyLogger
+internal interface IPlatformLogger
 {
-    void Log(object? message);
-    void LogWarning(object? message);
-    void LogError(object? message);
-    void LogVerbose(object? message);
+    void Log(string message, ProxyLogger.LogLevel level);
 }

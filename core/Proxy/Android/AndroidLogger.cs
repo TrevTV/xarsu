@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace xarsu.Proxy.Android;
 
-internal partial class AndroidLogger : IProxyLogger
+internal partial class AndroidLogger : IPlatformLogger
 {
     [LibraryImport("liblog", EntryPoint = "__android_log_print", StringMarshalling = StringMarshalling.Utf8)]
     private static partial int LogNative(LogPriority prio, string tag, string fmt);
@@ -15,24 +15,26 @@ internal partial class AndroidLogger : IProxyLogger
             throw new Exception("Logging failed: code " + res);
     }
 
-    public void Log(object? message)
+    public void Log(string message, ProxyLogger.LogLevel level)
     {
-        LogInternal(message?.ToString() ?? "", LogPriority.INFO);
-    }
-
-    public void LogWarning(object? message)
-    {
-        LogInternal(message?.ToString() ?? "", LogPriority.WARN);
-    }
-
-    public void LogError(object? message)
-    {
-        LogInternal(message?.ToString() ?? "", LogPriority.ERROR);
-    }
-
-    public void LogVerbose(object? message)
-    {
-        LogInternal(message?.ToString() ?? "", LogPriority.VERBOSE);
+        switch (level)
+        {
+            case ProxyLogger.LogLevel.Verbose:
+                LogInternal(message, LogPriority.VERBOSE);
+                break;
+            case ProxyLogger.LogLevel.Info:
+                LogInternal(message, LogPriority.INFO);
+                break;
+            case ProxyLogger.LogLevel.Warning:
+                LogInternal(message, LogPriority.WARN);
+                break;
+            case ProxyLogger.LogLevel.Error:
+                LogInternal(message, LogPriority.ERROR);
+                break;
+            default:
+                LogInternal(message, LogPriority.UNKNOWN);
+                break;
+        }
     }
 
     internal enum LogPriority

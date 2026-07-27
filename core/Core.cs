@@ -5,7 +5,7 @@ namespace xarsu;
 
 internal static class Core
 {
-    public static IProxyLogger? ProxyLogger { get; set; }
+    public static ProxyLogger? ProxyLogger { get; set; }
     public static IProxyBootstrap? Bootstrap { get; private set; }
 
     public static List<Library> LoadedLibraries = [];

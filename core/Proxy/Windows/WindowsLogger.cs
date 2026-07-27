@@ -1,24 +1,8 @@
 ﻿namespace xarsu.Proxy.Windows;
 
-// TODO: Implement a proper logger for Windows that writes to a log file and lets you toggle the log level. For now, just log to the console.
-internal partial class WindowsLogger : IProxyLogger
+internal partial class WindowsLogger : IPlatformLogger
 {
-    public void Log(object? message)
-    {
-        Console.WriteLine(message);
-    }
-
-    public void LogError(object? message)
-    {
-        Console.WriteLine(message);
-    }
-
-    public void LogVerbose(object? message)
-    {
-        Console.WriteLine(message);
-    }
-
-    public void LogWarning(object? message)
+    public void Log(string message, ProxyLogger.LogLevel level)
     {
         Console.WriteLine(message);
     }

@@ -1,5 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 using Tomlyn.Serialization;
+using xarsu.Proxy;
 
 namespace xarsu;
 
@@ -11,8 +12,6 @@ internal static class Configuration
 
     public static void Load(string data)
     {
-        Core.ProxyLogger?.Log("Loading configuration from data:");
-        Core.ProxyLogger?.Log(data);
         Current = Tomlyn.TomlSerializer.Deserialize(data, ConfigurationContext.Default.ConfigurationModel);
     }
 
@@ -21,6 +20,11 @@ internal static class Configuration
         var defaultConfig = new ConfigurationModel
         {
             ModLibraryNames = [],
+            Logging = new LoggingConfigurationModel()
+            {
+                LogLevel = ProxyLogger.LogLevel.Info,
+                LogToFile = false
+            },
             Windows = new WindowsConfigurationModel()
             {
                 OpenConsole = true
@@ -37,8 +41,19 @@ internal class ConfigurationModel
     [JsonPropertyName("mods")]
     public required string[] ModLibraryNames { get; set; }
 
+    [JsonPropertyName("logging")]
+    public required LoggingConfigurationModel? Logging { get; set; } = null;
+
     [JsonPropertyName("windows_only")]
     public WindowsConfigurationModel? Windows { get; set; } = null;
+}
+
+internal class LoggingConfigurationModel
+{
+    [JsonPropertyName("log_level")]
+    public required ProxyLogger.LogLevel LogLevel { get; set; } = ProxyLogger.LogLevel.Info;
+    [JsonPropertyName("log_to_file")]
+    public required bool LogToFile { get; set; } = false;
 }
 
 internal class WindowsConfigurationModel

@@ -31,7 +31,6 @@ public static class XarsuIl2CppGame
                 new AttributesOverrideProcessingLayer(),
                 new PublicizerProcessingLayer(),
                 new PointerCtorInjectionProcessingLayer(),
-                new PrimitiveImplicitConversionProcessingLayer(),
                 new ManagedTypeRemappingProcessingLayer(),
                 new ArrayRemappingProcessingLayer(),
                 new FieldAccessorProcessingLayer(),
@@ -39,6 +38,7 @@ public static class XarsuIl2CppGame
                 new EnumValueProcessingLayer(),
                 new OriginalNameInjectorProcessingLayer(),
                 new MethodTokenInjectionProcessingLayer(),
+                new PrimitiveImplicitConversionProcessingLayer(),
             ],
             extraData);
     }

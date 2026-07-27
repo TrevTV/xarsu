@@ -11,7 +11,7 @@ internal class ManagedTypeRemappingProcessingLayer : Cpp2IlProcessingLayer
 
     public override string Id => "managed_type_remapping";
 
-    internal static readonly Dictionary<string, string> typeMappings = new() {
+    private readonly Dictionary<string, string> typeMappings = new() {
         { "Il2CppSystem.SByte", "System.SByte"},
         { "Il2CppSystem.Byte", "System.Byte"},
         { "Il2CppSystem.Int16", "System.Int16"},
@@ -48,6 +48,9 @@ internal class ManagedTypeRemappingProcessingLayer : Cpp2IlProcessingLayer
             {
                 type.BaseType = _visitor.Replace(type.BaseType);
                 _visitor.Modify(type.InterfaceContexts);
+
+                if (type.IsEnumType)
+                    type.OverrideEnumUnderlyingType = _visitor.Replace(type.EnumUnderlyingType);
 
                 foreach (var genericParameter in type.GenericParameters)
                 {

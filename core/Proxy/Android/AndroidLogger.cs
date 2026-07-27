@@ -8,7 +8,7 @@ internal partial class AndroidLogger : IProxyLogger
     [LibraryImport("liblog", EntryPoint = "__android_log_print", StringMarshalling = StringMarshalling.Utf8)]
     private static partial int LogNative(LogPriority prio, string tag, string fmt);
 
-    private static void LogInternal(string msg, LogPriority prio = LogPriority.INFO)
+    internal static void LogInternal(string msg, LogPriority prio = LogPriority.INFO)
     {
         int res = LogNative(prio, "xarsu", msg);
         if (res < 0)
@@ -35,7 +35,7 @@ internal partial class AndroidLogger : IProxyLogger
         LogInternal(message?.ToString() ?? "", LogPriority.VERBOSE);
     }
 
-    private enum LogPriority
+    internal enum LogPriority
     {
         UNKNOWN = 0,
         DEFAULT = 1,

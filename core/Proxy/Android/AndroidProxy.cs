@@ -14,13 +14,11 @@ internal static class AndroidProxy
     [UnmanagedCallersOnly(EntryPoint = "JNI_OnLoad")]
     public static unsafe JNI.Version JNI_OnLoad(IntPtr vm, void* reserved)
     {
-        Core.ProxyLogger = new AndroidLogger();
-
         JNI.Initialize(vm);
         JClass nativeLoader = JNI.FindClass("com/unity3d/player/NativeLoader");
         if (!nativeLoader.Valid())
         {
-            Core.ProxyLogger.LogError("Cannot find NativeLoader class");
+            AndroidLogger.LogInternal("Cannot find NativeLoader class", AndroidLogger.LogPriority.ERROR);
             return JNI.Version.V1_6;
         }
 
@@ -32,7 +30,7 @@ internal static class AndroidProxy
         var registerNatives = JNI.Env->Functions->RegisterNatives(JNI.Env, nativeLoader.Handle, (IntPtr)methods, 2);
         if (registerNatives != 0)
         {
-            Core.ProxyLogger.LogError("Failed to register native methods");
+            AndroidLogger.LogInternal("Failed to register native methods", AndroidLogger.LogPriority.ERROR);
         }
         return JNI.Version.V1_6;
     }
@@ -56,13 +54,13 @@ internal static class AndroidProxy
     {
         if (!NativeLibrary.TryLoad("libunity.so", out var libUnity))
         {
-            Core.ProxyLogger?.LogError("Failed to load libunity.so");
+            AndroidLogger.LogInternal("Failed to load libunity.so", AndroidLogger.LogPriority.ERROR);
             return;
         }
 
         if (!NativeLibrary.TryGetExport(libUnity, "JNI_OnLoad", out var jniOnLoadPtr))
         {
-            Core.ProxyLogger?.LogError("Can't load export via JNI_OnLoad");
+            AndroidLogger.LogInternal("Can't load export via JNI_OnLoad", AndroidLogger.LogPriority.ERROR);
             return;
         }
 

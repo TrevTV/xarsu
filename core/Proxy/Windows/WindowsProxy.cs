@@ -28,8 +28,6 @@ internal static partial class WindowsProxy
     [UnmanagedCallersOnly(EntryPoint = "DllProcessAttach")]
     internal static void DllMain(nint hModule)
     {
-        Core.ProxyLogger = new WindowsLogger();
-
         InstallProxyRedirects(hModule);
 
         WindowsBootstrap.TryInitCore();

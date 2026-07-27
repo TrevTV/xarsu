@@ -26,7 +26,7 @@ internal partial class WindowsBootstrap : IProxyBootstrap
             return;
         }
 
-        if (Configuration.Current?.Windows.OpenConsole ?? true)
+        if (Configuration.Current?.Windows?.OpenConsole ?? true)
         {
             AllocConsole();
 
@@ -36,6 +36,8 @@ internal partial class WindowsBootstrap : IProxyBootstrap
 
             Console.OutputEncoding = Encoding.UTF8;
         }
+
+        Core.ProxyLogger = new(new WindowsLogger());
 
         if (!Directory.Exists(DataDirectory))
         {

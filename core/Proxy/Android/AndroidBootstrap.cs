@@ -30,6 +30,7 @@ internal partial class AndroidBootstrap : IProxyBootstrap
     {
         CacheApplicationInfo();
         DataDirectory = $"/sdcard/xarsu/{PackageName}/";
+        Core.ProxyLogger = new AndroidLogger();
 
         if (!TryLoadConfiguration())
         {

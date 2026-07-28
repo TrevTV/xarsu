@@ -2,7 +2,7 @@
 A NativeAOT-based Unity mod loader for IL2CPP, compatible with Android and Windows.
 
 ## Installation (Android)
-1. Once compiled, put `libmain.so` and `libc++_shared.so` (from `_redist`) inside the APK's ARM64 library folder (replacing the original `libmain.so`).
+1. Once compiled, put `libmain.so` and `libc++_shared.so` (from `redist`) inside the APK's ARM64 library folder (replacing the original `libmain.so`).
 2. Place any mods inside that directory as well.
 3. Create a `xarsu.toml` configuration file inside the `assets` folder.
 4. Inside of the config, you only need to define a list of mods, however you can also add extra information.

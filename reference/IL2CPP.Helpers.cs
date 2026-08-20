@@ -259,11 +259,16 @@ public static unsafe partial class IL2CPP
 
     public static IntPtr GetIl2CppMethodByMethodInfo(MethodInfo? info)
     {
-        if (info == null)
+        return GetIl2CppMethodByMethodBase(info);
+    }
+
+    public static IntPtr GetIl2CppMethodByMethodBase(MethodBase? methodBase)
+    {
+        if (methodBase == null)
             return IntPtr.Zero;
 
-        IntPtr clazz = GetIl2CppClassFromType(info.DeclaringType!);
-        MethodTokenAttribute? tokenAttrib = info.GetCustomAttribute<MethodTokenAttribute>();
+        IntPtr clazz = GetIl2CppClassFromType(methodBase.DeclaringType!);
+        MethodTokenAttribute? tokenAttrib = methodBase.GetCustomAttribute<MethodTokenAttribute>();
         if (tokenAttrib != null)
         {
             IntPtr method = GetIl2CppMethodByToken(clazz, (int)tokenAttrib.Token);
@@ -276,7 +281,9 @@ public static unsafe partial class IL2CPP
 
     public static IntPtr GetIl2CppMethodPointer(IntPtr methodInfo) => *(IntPtr*)methodInfo;
 
-    public static IntPtr GetIl2CppMethodPointer(MethodInfo? info) => GetIl2CppMethodPointer(GetIl2CppMethodByMethodInfo(info));
+    public static IntPtr GetIl2CppMethodPointer(MethodInfo? info) => GetIl2CppMethodPointer(GetIl2CppMethodByMethodBase(info));
+
+    public static IntPtr GetIl2CppMethodPointer(MethodBase? methodBase) => GetIl2CppMethodPointer(GetIl2CppMethodByMethodBase(methodBase));
 
     public static IntPtr GetIl2CppField(IntPtr clazz, string fieldName)
     {

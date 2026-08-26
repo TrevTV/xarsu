@@ -29,14 +29,19 @@ public class HookGenerator : IIncrementalGenerator
         if (attr.ConstructorArguments[0].Value is not INamedTypeSymbol declaringType) return null;
         string il2cppMethodName = attr.ConstructorArguments[1].Value?.ToString() ?? "";
 
-        IMethodSymbol? il2cppMethod;
+        IMethodSymbol? il2cppMethod = declaringType.GetMembers(il2cppMethodName)
+                .OfType<IMethodSymbol>()
+                .FirstOrDefault();
+        bool isStatic = il2cppMethod?.IsStatic ?? true;
+
+        int paramCount = isStatic ? method.Parameters.Length : method.Parameters.Length - 1; // if not static, first param is instance
 
         if (attr.ConstructorArguments.Length > 2 && attr.ConstructorArguments[2].Values != default)
         {
             // use parameter types to find the correct overload
             il2cppMethod = declaringType.GetMembers(il2cppMethodName)
                 .OfType<IMethodSymbol>()
-                .Where(m => m.Parameters.Length == method.Parameters.Length)
+                .Where(m => m.Parameters.Length == paramCount)
                 .FirstOrDefault(m =>
                 {
                     for (int i = 0; i < m.Parameters.Length; i++)
@@ -47,14 +52,7 @@ public class HookGenerator : IIncrementalGenerator
                     return true;
                 });
         }
-        else
-        {
-            il2cppMethod = declaringType.GetMembers(il2cppMethodName)
-                .OfType<IMethodSymbol>()
-                .FirstOrDefault();
-        }
 
-        bool isStatic = il2cppMethod?.IsStatic ?? true;
         string? instanceTypeName = isStatic ? null : declaringType.ToDisplayString();
 
         return new HookInfo(

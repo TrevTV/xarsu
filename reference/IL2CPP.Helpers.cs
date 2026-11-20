@@ -405,6 +405,7 @@ public static unsafe partial class IL2CPP
             null => null,
             string str => (void*)ManagedStringToIl2Cpp(str),
             Il2CppObject il2cppObj => (void*)il2cppObj.Pointer,
+            IIl2CppStruct il2cppStruct => (void*)il2cppStruct.WriteToNative(),
             bool v => NativeUtilities.CopyToUnmanaged(v),
             byte v => NativeUtilities.CopyToUnmanaged(v),
             sbyte v => NativeUtilities.CopyToUnmanaged(v),
